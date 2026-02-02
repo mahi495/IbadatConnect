@@ -52,7 +52,19 @@ export const normalizeIbadatName = (input: string): string => {
   // Matches witr, witar
   if (lower.match(/wit+r|wit+ar/)) return 'Witr';
 
-  // --- Zikr ---
+  // --- Zikr / Darood Specifics ---
+  // Check for specific named Daroods BEFORE generic 'Salawat' catch-all
+  if (lower.includes('khizri')) return 'Darood Khizri';
+  if (lower.includes('taaj') || lower.includes('taj')) return 'Darood Taj';
+  if (lower.includes('shifa')) return 'Darood Shifa';
+  if (lower.includes('tunjina') || lower.includes('tanjeena') || lower.includes('tunajjina')) return 'Darood Tanjeena';
+  if (lower.includes('ibrahimi')) return 'Darood Ibrahimi';
+  if (lower.includes('nariya')) return 'Darood Nariya';
+  if (lower.includes('ghousia')) return 'Darood Ghousia';
+  if (lower.includes('mahi')) return 'Darood Mahi';
+  if (lower.includes('lakhi')) return 'Darood Lakhi';
+
+  // Generic Zikr
   if (lower.includes('salawat') || lower.includes('durood') || lower.includes('darood')) return 'Salawat';
   if (lower.includes('istighfar') || lower.includes('astaghfar')) return 'Istighfar';
   if (lower.includes('kalma') || lower.includes('kalima')) return 'Kalma';

@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { IbadatEntry, Occasion, IbadatCategory } from '../types';
-import { Copy, Share2, ChevronDown } from 'lucide-react';
+import { Copy, Share2, ChevronDown, BookOpen } from 'lucide-react';
 import { normalizeIbadatName } from '../utils';
 
 interface DuaViewProps {
@@ -16,6 +16,8 @@ export const DuaView: React.FC<DuaViewProps> = ({
   occasions,
   onOccasionChange
 }) => {
+  const [logoError, setLogoError] = useState(false);
+
   // Group entries by Category
   const grouped = entries.reduce((acc, entry) => {
     const cat = entry.category || IbadatCategory.OTHER;
@@ -76,11 +78,18 @@ export const DuaView: React.FC<DuaViewProps> = ({
     <div className="max-w-4xl mx-auto space-y-8 animate-fade-in pb-12">
       <div className="text-center space-y-4">
         <div className="inline-block relative">
-           <img 
-             src="/logo.png" 
-             alt="Logo" 
-             className="w-auto h-20 rounded-xl shadow-md object-contain border-4 border-white"
-           />
+           {logoError ? (
+             <div className="w-20 h-20 rounded-xl shadow-md bg-emerald-50 flex items-center justify-center border-4 border-white">
+                <BookOpen className="w-10 h-10 text-emerald-600" />
+             </div>
+           ) : (
+             <img 
+               src="/logo.png" 
+               alt="Logo" 
+               className="w-auto h-20 rounded-xl shadow-md object-contain border-4 border-white"
+               onError={() => setLogoError(true)}
+             />
+           )}
            <div className="absolute -bottom-1 -right-1 bg-emerald-500 w-6 h-6 rounded-full border-2 border-white"></div>
         </div>
         

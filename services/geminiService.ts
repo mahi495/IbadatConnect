@@ -54,16 +54,18 @@ export const parseWhatsAppMessages = async (text: string): Promise<ParseResult[]
     - Surahs (Yasin, Mulk, Kahf, etc.)
     - Verses (Ayatul Kursi, specific Ayaats)
     - Words/Zikr (Salawat, Istighfar, Kalma, Tasbeeh)
+    - Specific Daroods (Darood Taj, Darood Khizri, Darood Shifa, etc.)
     - Nawafil (Prayers, Rakat)
     
     Please extract a structured list of these deeds.
     
     Rules:
     1. Ignore system messages.
-    2. Normalize Ibadat names strongly (e.g., "Para 1" -> "Juz 1", "Darood" -> "Salawat", "Yaseen" -> "Surah Yasin").
-    3. Determine the correct Category for each deed.
-    4. If a range is given (e.g., "Juz 1-5"), calculate the count (which is 5).
-    5. If no name is provided, use "Community Member".
+    2. Normalize Ibadat names strongly (e.g., "Para 1" -> "Juz 1", "Yaseen" -> "Surah Yasin").
+    3. IMPORTANT: For Darood/Salawat: If a specific name is given (e.g. "Darood Taj", "Darood Khizri"), keep the specific name. If just "Darood" or "Salawat" is used, use "Salawat".
+    4. Determine the correct Category for each deed.
+    5. If a range is given (e.g., "Juz 1-5"), calculate the count (which is 5).
+    6. If no name is provided, use "Community Member".
     
     Input Text:
     "${text}"
