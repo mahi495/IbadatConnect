@@ -84,7 +84,7 @@ export const EditEntryModal: React.FC<EditEntryModalProps> = ({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Event</label>
               <select
-                className="w-full text-sm border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                className="w-full text-sm bg-white text-gray-900 border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                 value={formData.occasionId}
                 onChange={(e) => setFormData({...formData, occasionId: e.target.value})}
               >
@@ -99,7 +99,7 @@ export const EditEntryModal: React.FC<EditEntryModalProps> = ({
               <label className="block text-sm font-medium text-gray-700 mb-1">Contributor Name</label>
               <input
                 type="text"
-                className="w-full rounded-lg border-gray-300 focus:ring-emerald-500 focus:border-emerald-500"
+                className="w-full rounded-lg bg-white text-gray-900 border-gray-300 focus:ring-emerald-500 focus:border-emerald-500"
                 value={formData.contributorName}
                 onChange={e => setFormData({ ...formData, contributorName: e.target.value })}
                 placeholder="Community Member"
@@ -135,7 +135,7 @@ export const EditEntryModal: React.FC<EditEntryModalProps> = ({
                     type="text"
                     required
                     placeholder={categoryDefaults[formData.category].placeholder}
-                    className="w-full rounded-lg border-gray-300 focus:ring-emerald-500 focus:border-emerald-500"
+                    className="w-full rounded-lg bg-white text-gray-900 border-gray-300 focus:ring-emerald-500 focus:border-emerald-500"
                     value={formData.ibadatType}
                     onChange={e => setFormData({ ...formData, ibadatType: e.target.value })}
                 />
@@ -148,7 +148,7 @@ export const EditEntryModal: React.FC<EditEntryModalProps> = ({
                         type="number"
                         min="1"
                         required
-                        className="w-full rounded-lg border-gray-300 focus:ring-emerald-500 focus:border-emerald-500"
+                        className="w-full rounded-lg bg-white text-gray-900 border-gray-300 focus:ring-emerald-500 focus:border-emerald-500"
                         value={formData.count}
                         onChange={e => setFormData({ ...formData, count: parseInt(e.target.value) || 0 })}
                     />
@@ -158,7 +158,7 @@ export const EditEntryModal: React.FC<EditEntryModalProps> = ({
                     <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
                     <input
                     type="text"
-                    className="w-full rounded-lg border-gray-300 focus:ring-emerald-500 focus:border-emerald-500"
+                    className="w-full rounded-lg bg-white text-gray-900 border-gray-300 focus:ring-emerald-500 focus:border-emerald-500"
                     value={formData.unit}
                     onChange={e => setFormData({ ...formData, unit: e.target.value })}
                     />

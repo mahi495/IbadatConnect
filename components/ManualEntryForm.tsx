@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { IbadatEntry, IbadatCategory, Occasion } from '../types';
-import { Send, Plus, Minus, ScrollText, Calendar, Info, Sparkles, Loader2, History, X, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Send, Plus, Minus, ScrollText, Calendar, Info, Sparkles, Loader2, History, X, CheckCircle, AlertTriangle, ChevronRight, BookOpen } from 'lucide-react';
 import { normalizeIbadatName } from '../utils';
 import { normalizeDeedWithAI } from '../services/geminiService';
 
@@ -61,6 +61,10 @@ export const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
     count: 1,
     unit: 'juz'
   });
+
+  // Quran Selection State
+  const [selectedJuz, setSelectedJuz] = useState<number[]>([]);
+  const [isWholeQuran, setIsWholeQuran] = useState(false);
 
   // Staging List
   const [pendingEntries, setPendingEntries] = useState<Omit<IbadatEntry, 'id' | 'occasionId' | 'dateAdded' | 'contributorName'>[]>([]);
@@ -155,6 +159,22 @@ export const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
       unit: categoryDefaults[cat].unit,
       ibadatType: ''
     }));
+    // Reset Quran selection
+    setSelectedJuz([]);
+    setIsWholeQuran(false);
+  };
+
+  const toggleJuz = (num: number) => {
+    if (isWholeQuran) setIsWholeQuran(false);
+    setSelectedJuz(prev => 
+        prev.includes(num) ? prev.filter(n => n !== num) : [...prev, num]
+    );
+  };
+
+  const toggleWholeQuran = () => {
+    const newState = !isWholeQuran;
+    setIsWholeQuran(newState);
+    if (newState) setSelectedJuz([]);
   };
 
   const handleAIMagicFix = async () => {
@@ -181,8 +201,43 @@ export const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
   const addCurrentToList = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
+    // --- Quran Specific Logic ---
+    if (currentInput.category === IbadatCategory.QURAN) {
+        if (!isWholeQuran && selectedJuz.length === 0) return;
+
+        const entriesToAdd: Omit<IbadatEntry, 'id' | 'occasionId' | 'dateAdded' | 'contributorName'>[] = [];
+        const multiplier = Math.max(1, currentInput.count);
+
+        if (isWholeQuran) {
+            entriesToAdd.push({
+                category: IbadatCategory.QURAN,
+                ibadatType: 'Whole Quran',
+                count: multiplier,
+                unit: 'khatam'
+            });
+        } else {
+            const sorted = [...selectedJuz].sort((a,b) => a - b);
+            sorted.forEach(juzNum => {
+                entriesToAdd.push({
+                    category: IbadatCategory.QURAN,
+                    ibadatType: `Juz ${juzNum}`,
+                    count: multiplier,
+                    unit: 'juz'
+                });
+            });
+        }
+        
+        setPendingEntries(prev => [...prev, ...entriesToAdd]);
+        
+        // Reset selections
+        setSelectedJuz([]);
+        setIsWholeQuran(false);
+        setCurrentInput(prev => ({ ...prev, count: 1 }));
+        return;
+    }
+
+    // --- Standard Logic ---
     if (!currentInput.ibadatType.trim()) {
-      // Focus input if trying to add empty
       typeInputRef.current?.focus();
       return;
     }
@@ -234,7 +289,9 @@ export const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
     });
 
     // 2. If user typed something in input but didn't click "Add to List", include it too (Smart Submit)
-    if (currentInput.ibadatType.trim()) {
+    // Only applies to non-Quran text inputs or if the quran selection hasn't been added to pending yet (optional, but safer to force explicit add for multi-select)
+    // For Quran, we force explicit "Add" because it's complex. For others, allow implicit submit.
+    if (currentInput.category !== IbadatCategory.QURAN && currentInput.ibadatType.trim()) {
       finalEntries.push({
         id: crypto.randomUUID(),
         occasionId: activeOccasion.id,
@@ -245,6 +302,34 @@ export const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
         unit: currentInput.unit,
         dateAdded: date
       });
+    } else if (currentInput.category === IbadatCategory.QURAN && (selectedJuz.length > 0 || isWholeQuran)) {
+       // Also support smart submit for Quran selection
+       const multiplier = Math.max(1, currentInput.count);
+       if (isWholeQuran) {
+          finalEntries.push({
+            id: crypto.randomUUID(),
+            occasionId: activeOccasion.id,
+            contributorName: nameToUse,
+            category: IbadatCategory.QURAN,
+            ibadatType: 'Whole Quran',
+            count: multiplier,
+            unit: 'khatam',
+            dateAdded: date
+          });
+       } else {
+          selectedJuz.sort((a,b)=>a-b).forEach(juzNum => {
+             finalEntries.push({
+                id: crypto.randomUUID(),
+                occasionId: activeOccasion.id,
+                contributorName: nameToUse,
+                category: IbadatCategory.QURAN,
+                ibadatType: `Juz ${juzNum}`,
+                count: multiplier,
+                unit: 'juz',
+                dateAdded: date
+             });
+          });
+       }
     }
 
     if (finalEntries.length === 0) return;
@@ -261,55 +346,70 @@ export const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
         ibadatType: '',
         count: 1
     }));
+    setSelectedJuz([]);
+    setIsWholeQuran(false);
     setSimilarityWarning(null);
   };
 
   const datalistId = `ibadat-suggestions-${currentInput.category.replace(/\s+/g, '-')}`;
 
+  // Helper to determine if Add Button is disabled
+  const isAddDisabled = () => {
+    if (currentInput.category === IbadatCategory.QURAN) {
+        return !isWholeQuran && selectedJuz.length === 0;
+    }
+    return !currentInput.ibadatType.trim();
+  };
+
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-fade-in">
-      <div className="bg-white rounded-xl shadow-sm border border-emerald-100 p-6">
-        <div className="flex justify-between items-start mb-6">
-          <div className="flex items-center gap-2 text-emerald-800">
-            <ScrollText className="w-6 h-6" />
-            <h2 className="text-xl font-bold">Log Ibadat</h2>
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        <div className="flex justify-between items-start mb-8">
+          <div>
+             <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+               <ScrollText className="w-6 h-6 text-emerald-600" />
+               Manual Entry
+             </h2>
+             <p className="text-gray-500 text-sm mt-1">Log deeds directly for a community member.</p>
           </div>
           {pendingEntries.length > 0 && (
-             <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-1 rounded-full">
-               {pendingEntries.length} items ready
+             <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1.5 rounded-full shadow-sm animate-pulse">
+               {pendingEntries.length} in staging
              </span>
           )}
         </div>
         
         {/* Event Selection */}
         {occasions && occasions.length > 1 && onOccasionChange && (
-          <div className="mb-6 p-4 bg-emerald-50 rounded-lg border border-emerald-100">
-            <label className="block text-xs font-bold text-emerald-700 uppercase tracking-wider mb-2 flex items-center gap-1">
+          <div className="mb-6 p-4 bg-gray-50/50 rounded-xl border border-gray-200 hover:border-emerald-200 transition-colors">
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1">
               <Calendar size={14} /> Contributing To
             </label>
-            <select
-              className="w-full text-sm border-emerald-200 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 bg-white"
-              value={activeOccasion.id}
-              onChange={(e) => onOccasionChange(e.target.value)}
-            >
-              {occasions.map(o => (
-                <option key={o.id} value={o.id}>
-                  {o.title} (Ends: {new Date(o.endDate).toLocaleDateString()})
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                className="w-full text-sm font-medium text-gray-900 border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 bg-white shadow-sm py-2.5 px-3"
+                value={activeOccasion.id}
+                onChange={(e) => onOccasionChange(e.target.value)}
+              >
+                {occasions.map(o => (
+                  <option key={o.id} value={o.id}>
+                    {o.title} (Ends: {new Date(o.endDate).toLocaleDateString()})
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         )}
 
         {/* Global Contributor Name */}
-        <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Contributor Name <span className="text-gray-400 font-normal">(Optional)</span>
+        <div className="mb-8">
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+              Contributor Name
             </label>
             <input
               type="text"
-              placeholder="Leave empty for Community Member"
-              className="w-full rounded-lg border-gray-300 focus:ring-emerald-500 focus:border-emerald-500"
+              placeholder="e.g. Sister Fatima (Leave empty for Community Member)"
+              className="w-full rounded-xl border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 py-2.5 bg-white text-gray-900 transition-all shadow-sm"
               value={contributorName}
               onChange={e => setContributorName(e.target.value)}
             />
@@ -317,42 +417,54 @@ export const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
               <button 
                 type="button" 
                 onClick={() => setContributorName(recentName)}
-                className="text-xs text-emerald-600 hover:text-emerald-700 mt-1 flex items-center gap-1"
+                className="text-xs text-emerald-600 hover:text-emerald-700 mt-2 flex items-center gap-1 bg-emerald-50 px-2 py-1 rounded-md w-fit"
               >
-                <History size={12} /> Use previous: {recentName}
+                <History size={12} /> Use previous: <span className="font-semibold">{recentName}</span>
               </button>
             )}
         </div>
 
-        <div className="border-t border-gray-200 my-6"></div>
+        <div className="relative mb-8">
+          <div className="absolute inset-0 flex items-center" aria-hidden="true">
+            <div className="w-full border-t border-gray-200"></div>
+          </div>
+          <div className="relative flex justify-center">
+            <span className="px-3 bg-white text-xs font-medium text-gray-400 uppercase tracking-widest">Entry Details</span>
+          </div>
+        </div>
 
         {/* Input Area (Staging) */}
-        <div className="bg-gray-50/80 p-5 rounded-xl border border-gray-200 space-y-4">
+        <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-5">
             <div className="flex justify-between items-center">
-               <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wide">Add Deeds</h3>
-               <button 
-                  type="button"
-                  onClick={handleAIMagicFix}
-                  disabled={isNormalizing || !currentInput.ibadatType}
-                  className="text-xs text-indigo-500 hover:text-indigo-700 flex items-center gap-1 disabled:opacity-30"
-               >
-                  {isNormalizing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-                  AI Fix Name
-               </button>
+               <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide flex items-center gap-2">
+                 <div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div>
+                 Add Deed
+               </h3>
+               {currentInput.category !== IbadatCategory.QURAN && (
+                  <button 
+                      type="button"
+                      onClick={handleAIMagicFix}
+                      disabled={isNormalizing || !currentInput.ibadatType}
+                      className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5 disabled:opacity-30 px-2 py-1 hover:bg-indigo-50 rounded-md transition-colors"
+                  >
+                      {isNormalizing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                      Smart Fix
+                  </button>
+               )}
             </div>
 
             {/* Category */}
             <div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
                 {Object.values(IbadatCategory).map((cat) => (
                     <button
                     key={cat}
                     type="button"
                     onClick={() => handleCategoryChange(cat)}
-                    className={`px-3 py-2 text-sm rounded-lg border transition-all ${
+                    className={`px-2 py-2 text-xs font-medium rounded-lg border transition-all ${
                         currentInput.category === cat
-                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                        : 'bg-white text-gray-600 border-gray-200 hover:bg-emerald-50'
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-md transform scale-105'
+                        : 'bg-white text-gray-500 border-gray-200 hover:bg-white hover:text-emerald-600 hover:border-emerald-200'
                     }`}
                     >
                     {cat}
@@ -362,61 +474,120 @@ export const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
             </div>
 
             {/* Inputs Row */}
-            <form onSubmit={addCurrentToList} className="flex flex-col md:flex-row gap-3 items-start md:items-end">
-                <div className="flex-1 w-full">
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Deed Name</label>
-                    <div className="relative">
-                        <input
-                        ref={typeInputRef}
-                        type="text"
-                        list={datalistId}
-                        placeholder={suggestions.length > 0 ? "Select or type..." : categoryDefaults[currentInput.category].placeholder}
-                        className={`w-full rounded-lg border focus:ring-emerald-500 focus:border-emerald-500 pr-8 ${
-                            similarityWarning ? 'border-amber-400 bg-amber-50' : 'border-gray-300'
-                        }`}
-                        value={currentInput.ibadatType}
-                        onChange={e => setCurrentInput({ ...currentInput, ibadatType: e.target.value })}
-                        autoComplete="off"
-                        onKeyDown={(e) => {
-                             // Allow submitting the line item with Enter key
-                             if(e.key === 'Enter') addCurrentToList();
-                        }}
-                        />
-                         {/* Autocomplete Datalist */}
-                        <datalist id={datalistId}>
-                        {suggestions.map((item, idx) => (
-                            <option key={idx} value={item} />
-                        ))}
-                        </datalist>
-                    </div>
-                </div>
+            <form onSubmit={addCurrentToList} className="flex flex-col md:flex-row gap-4 items-start md:items-end">
+                {currentInput.category === IbadatCategory.QURAN ? (
+                    // --- QURAN SELECTOR UI ---
+                    <div className="flex-1 w-full space-y-3">
+                         <label className="block text-xs font-medium text-gray-500 ml-1">Select Parts Completed</label>
+                         
+                         {/* Whole Quran Toggle */}
+                         <button
+                            type="button"
+                            onClick={toggleWholeQuran}
+                            className={`w-full py-3 px-4 rounded-xl border flex items-center justify-between transition-all ${
+                                isWholeQuran 
+                                ? 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-200' 
+                                : 'bg-white text-gray-700 border-gray-200 hover:border-emerald-300'
+                            }`}
+                         >
+                            <span className="font-bold flex items-center gap-2 text-sm">
+                                <BookOpen size={18} /> Whole Quran (Khatam)
+                            </span>
+                            {isWholeQuran && <CheckCircle size={18} />}
+                         </button>
 
-                <div className="flex gap-2 w-full md:w-auto">
+                         <div className="flex items-center gap-2 my-1">
+                            <div className="h-px bg-gray-200 flex-1"></div>
+                            <span className="text-[10px] text-gray-400 font-bold uppercase">Or Select Juz</span>
+                            <div className="h-px bg-gray-200 flex-1"></div>
+                         </div>
+
+                         {/* Juz Grid */}
+                         <div className="grid grid-cols-5 sm:grid-cols-6 gap-2">
+                            {Array.from({ length: 30 }, (_, i) => i + 1).map(num => (
+                                <button
+                                    key={num}
+                                    type="button"
+                                    onClick={() => toggleJuz(num)}
+                                    disabled={isWholeQuran}
+                                    className={`h-9 text-sm font-medium rounded-lg border transition-all ${
+                                        selectedJuz.includes(num)
+                                        ? 'bg-emerald-100 text-emerald-800 border-emerald-500 font-bold shadow-sm'
+                                        : isWholeQuran 
+                                            ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed'
+                                            : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-300 hover:text-emerald-600'
+                                    }`}
+                                >
+                                    {num}
+                                </button>
+                            ))}
+                         </div>
+                         
+                         <div className="min-h-[16px] text-xs text-gray-500">
+                             {selectedJuz.length > 0 && !isWholeQuran && (
+                                 <span>Selected: <span className="font-medium text-emerald-700">{selectedJuz.sort((a,b)=>a-b).map(j => `Juz ${j}`).join(', ')}</span></span>
+                             )}
+                         </div>
+                    </div>
+                ) : (
+                    // --- STANDARD TEXT INPUT ---
+                    <div className="flex-1 w-full">
+                        <label className="block text-xs font-medium text-gray-500 mb-1.5 ml-1">Deed Name</label>
+                        <div className="relative group">
+                            <input
+                            ref={typeInputRef}
+                            type="text"
+                            list={datalistId}
+                            placeholder={suggestions.length > 0 ? "Select or type..." : categoryDefaults[currentInput.category].placeholder}
+                            className={`w-full rounded-xl border bg-white text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 pr-8 py-2.5 shadow-sm transition-all ${
+                                similarityWarning ? 'border-amber-400 bg-amber-50 text-amber-900 placeholder-amber-400' : 'border-gray-300 group-hover:border-gray-400'
+                            }`}
+                            value={currentInput.ibadatType}
+                            onChange={e => setCurrentInput({ ...currentInput, ibadatType: e.target.value })}
+                            autoComplete="off"
+                            onKeyDown={(e) => {
+                                // Allow submitting the line item with Enter key
+                                if(e.key === 'Enter') addCurrentToList();
+                            }}
+                            />
+                            {/* Autocomplete Datalist */}
+                            <datalist id={datalistId}>
+                            {suggestions.map((item, idx) => (
+                                <option key={idx} value={item} />
+                            ))}
+                            </datalist>
+                        </div>
+                    </div>
+                )}
+
+                <div className="flex gap-3 w-full md:w-auto">
                     <div className="w-24">
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Count</label>
+                        <label className="block text-xs font-medium text-gray-500 mb-1.5 ml-1">Count</label>
                         <input
                             type="number"
                             min="1"
-                            className="w-full rounded-lg border-gray-300 focus:ring-emerald-500 focus:border-emerald-500"
+                            className="w-full rounded-xl bg-white text-gray-900 border-gray-300 focus:ring-emerald-500 focus:border-emerald-500 py-2.5 shadow-sm"
                             value={currentInput.count}
                             onChange={e => setCurrentInput({ ...currentInput, count: parseInt(e.target.value) || 0 })}
                         />
                     </div>
-                    <div className="w-24">
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Unit</label>
-                        <input
-                            type="text"
-                            className="w-full rounded-lg border-gray-300 focus:ring-emerald-500 focus:border-emerald-500"
-                            value={currentInput.unit}
-                            onChange={e => setCurrentInput({ ...currentInput, unit: e.target.value })}
-                        />
-                    </div>
+                    {currentInput.category !== IbadatCategory.QURAN && (
+                        <div className="w-28">
+                            <label className="block text-xs font-medium text-gray-500 mb-1.5 ml-1">Unit</label>
+                            <input
+                                type="text"
+                                className="w-full rounded-xl bg-white text-gray-900 border-gray-300 focus:ring-emerald-500 focus:border-emerald-500 py-2.5 shadow-sm"
+                                value={currentInput.unit}
+                                onChange={e => setCurrentInput({ ...currentInput, unit: e.target.value })}
+                            />
+                        </div>
+                    )}
                 </div>
 
                 <button
                     type="submit" // Trigger form submit for this section
-                    disabled={!currentInput.ibadatType.trim()}
-                    className="w-full md:w-auto px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 h-[42px]"
+                    disabled={isAddDisabled()}
+                    className="w-full md:w-auto px-5 py-2.5 bg-slate-800 text-white rounded-xl hover:bg-slate-900 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 h-[46px] shadow-sm hover:shadow-md transition-all active:scale-95"
                 >
                     <Plus size={18} /> <span className="md:hidden">Add to List</span>
                 </button>
@@ -424,7 +595,7 @@ export const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
 
             {/* Similarity Warning Block */}
             {similarityWarning && (
-                <div className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800 animate-fade-in-up">
+                <div className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800 animate-fade-in-up">
                     <AlertTriangle className="w-5 h-5 shrink-0 text-amber-500" />
                     <div className="flex-1">
                         <span className="font-medium">Potential Duplicate:</span> {similarityWarning.text}
@@ -432,7 +603,7 @@ export const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
                     <button 
                         type="button"
                         onClick={applySuggestion}
-                        className="px-3 py-1 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-md text-xs font-bold transition-colors whitespace-nowrap"
+                        className="px-3 py-1 bg-white border border-amber-200 hover:bg-amber-50 text-amber-900 rounded-lg text-xs font-bold transition-colors whitespace-nowrap shadow-sm"
                     >
                         Use "{similarityWarning.suggestion}"
                     </button>
@@ -442,29 +613,29 @@ export const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
 
         {/* Pending List Table */}
         {pendingEntries.length > 0 && (
-            <div className="border border-gray-200 rounded-lg overflow-hidden animate-fade-in-up">
+            <div className="border border-gray-200 rounded-xl overflow-hidden animate-fade-in-up shadow-sm mt-6">
                 <table className="w-full text-sm text-left">
-                    <thead className="bg-emerald-50 text-emerald-800 text-xs uppercase">
+                    <thead className="bg-emerald-50/70 text-emerald-800 text-xs uppercase tracking-wide border-b border-emerald-100">
                         <tr>
-                            <th className="px-4 py-2">Deed</th>
-                            <th className="px-4 py-2">Quantity</th>
-                            <th className="px-4 py-2 w-10"></th>
+                            <th className="px-5 py-3 font-semibold">Deed</th>
+                            <th className="px-5 py-3 font-semibold">Quantity</th>
+                            <th className="px-5 py-3 w-10"></th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-gray-100 bg-white">
                         {pendingEntries.map((entry, idx) => (
-                            <tr key={idx} className="bg-white">
-                                <td className="px-4 py-2 font-medium text-gray-800">
+                            <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
+                                <td className="px-5 py-3 font-medium text-gray-800">
                                     {entry.ibadatType}
-                                    <span className="block text-xs text-gray-400 font-normal">{entry.category}</span>
+                                    <span className="block text-[10px] text-gray-400 font-bold uppercase mt-0.5">{entry.category}</span>
                                 </td>
-                                <td className="px-4 py-2 text-gray-600">
-                                    {entry.count} {entry.unit}
+                                <td className="px-5 py-3 text-gray-600 font-medium">
+                                    <span className="bg-gray-100 px-2 py-0.5 rounded text-gray-700">{entry.count}</span> <span className="text-gray-400 text-xs">{entry.unit}</span>
                                 </td>
-                                <td className="px-4 py-2 text-right">
+                                <td className="px-5 py-3 text-right">
                                     <button 
                                         onClick={() => removePendingEntry(idx)}
-                                        className="text-red-400 hover:text-red-600 p-1"
+                                        className="text-gray-300 hover:text-red-500 p-1.5 rounded-full hover:bg-red-50 transition-colors"
                                     >
                                         <X size={16} />
                                     </button>
@@ -477,16 +648,18 @@ export const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
         )}
 
         {/* Submit Button */}
-        <button
-            onClick={handleSubmitAll}
-            disabled={pendingEntries.length === 0 && !currentInput.ibadatType.trim()}
-            className="w-full bg-emerald-600 text-white py-3 rounded-lg font-medium hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-            <Send className="w-5 h-5" />
-            {pendingEntries.length > 0 
-                ? `Submit ${pendingEntries.length + (currentInput.ibadatType.trim() ? 1 : 0)} Entries` 
-                : "Submit Entry"}
-        </button>
+        <div className="mt-8 pt-4 border-t border-gray-100">
+            <button
+                onClick={handleSubmitAll}
+                disabled={pendingEntries.length === 0 && (currentInput.category === IbadatCategory.QURAN ? selectedJuz.length === 0 && !isWholeQuran : !currentInput.ibadatType.trim())}
+                className="w-full bg-emerald-600 text-white py-3.5 rounded-xl font-bold text-lg hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transform hover:-translate-y-0.5"
+            >
+                {pendingEntries.length > 0 
+                    ? `Submit ${pendingEntries.length + ((currentInput.category === IbadatCategory.QURAN ? (selectedJuz.length > 0 || isWholeQuran) : currentInput.ibadatType.trim()) ? 1 : 0)} Entries` 
+                    : "Submit Entry"}
+                <ChevronRight className="w-5 h-5" />
+            </button>
+        </div>
 
       </div>
     </div>

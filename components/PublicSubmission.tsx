@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { IbadatEntry, Occasion, ToastType } from '../types';
 import { ManualEntryForm } from './ManualEntryForm';
 import { MessageImporter } from './MessageImporter';
-import { HandHeart, CalendarCheck, Loader2, Sparkles, ChevronDown } from 'lucide-react';
+import { HandHeart, CalendarCheck, Loader2, Sparkles, ChevronDown, Check } from 'lucide-react';
 import { generatePersonalDua } from '../services/geminiService';
 
 interface PublicSubmissionProps {
@@ -100,83 +100,77 @@ export const PublicSubmission: React.FC<PublicSubmissionProps> = ({
 
   if (!activeOccasion) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f0fdf4] p-4">
-        <div className="bg-white p-8 rounded-xl shadow-lg max-w-md text-center">
-          <HandHeart className="w-16 h-16 text-emerald-600 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">IbadatConnect</h1>
-          <p className="text-emerald-600 text-xs font-medium uppercase tracking-wide mb-4">
+      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] p-4">
+        <div className="bg-white p-10 rounded-2xl shadow-xl max-w-md text-center border border-gray-100">
+          <img src="/perlogo.png" alt="Logo" className="w-auto h-24 mx-auto mb-6 rounded-xl shadow-md object-contain" />
+          <h1 className="text-2xl font-bold text-gray-800 mb-2 font-arabic">IbadatConnect</h1>
+          <p className="text-emerald-600 text-xs font-bold uppercase tracking-widest mb-6">
             Automating the collection, elevating the connection
           </p>
-          <p className="text-gray-600">No active events found currently.</p>
+          <p className="text-gray-500">No active events found currently.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#f0fdf4] pb-12">
-      <div className="bg-emerald-800 text-white py-6 px-4 shadow-md">
-        <div className="max-w-2xl mx-auto flex items-center gap-3">
-          <HandHeart className="w-8 h-8 text-emerald-300" />
-          <div>
-            <h1 className="text-2xl font-bold font-arabic">IbadatConnect</h1>
-            <p className="text-emerald-200 text-sm">Community Worship Collection</p>
-            <p className="text-emerald-300 text-xs uppercase tracking-wide mt-1 font-medium">
+    <div className="min-h-screen bg-[#f8fafc] pb-12 font-sans text-gray-900">
+      {/* Hero Header */}
+      <div className="bg-emerald-900 text-white pb-20 pt-10 px-4 shadow-lg relative overflow-hidden">
+        {/* Abstract Pattern */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-800/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-teal-800/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+        
+        <div className="max-w-2xl mx-auto flex flex-col items-center text-center relative z-10">
+          <div className="bg-white/10 backdrop-blur-md p-2 rounded-xl mb-4 border border-white/20 shadow-xl">
+             <img src="/perlogo.png" alt="Logo" className="w-auto h-16 rounded-lg object-contain" />
+          </div>
+          <h1 className="text-3xl md:text-4xl font-bold font-arabic mb-2 tracking-wide">IbadatConnect</h1>
+          <p className="text-emerald-200/80 text-sm font-medium max-w-sm mx-auto leading-relaxed">
+            Community Worship Collection Platform
+          </p>
+          <div className="mt-4 px-4 py-1.5 bg-emerald-950/30 rounded-full border border-emerald-500/20">
+             <p className="text-emerald-300 text-[10px] md:text-xs uppercase tracking-[0.2em] font-bold">
               Automating the collection, elevating the connection
             </p>
           </div>
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 mt-8 space-y-6">
-        {/* Event Selection Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-emerald-100 p-6 relative overflow-hidden">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-            <div className="flex-1 z-10">
-              <span className="text-xs font-semibold tracking-wide text-emerald-600 uppercase mb-1 block">Current Event</span>
+      <div className="max-w-2xl mx-auto px-4 -mt-12 space-y-8 relative z-20">
+        {/* Event Selection Card - Only show if we have options, otherwise show title */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 relative overflow-hidden">
+          <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+            <div className="flex-1">
+              <span className="inline-block px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase tracking-wider mb-3">Current Campaign</span>
               
-              {activeOccasionsList.length > 1 ? (
-                <div className="relative inline-block w-full max-w-sm">
-                   <select 
-                     value={activeOccasionId}
-                     onChange={(e) => setActiveOccasionId(e.target.value)}
-                     className="w-full appearance-none bg-emerald-50 border border-emerald-200 text-emerald-900 text-lg font-bold py-2 pl-3 pr-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
-                   >
-                     {activeOccasionsList.map(o => (
-                       <option key={o.id} value={o.id}>{o.title}</option>
-                     ))}
-                   </select>
-                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-600 w-5 h-5 pointer-events-none" />
-                </div>
-              ) : (
-                 <h2 className="text-xl font-bold text-gray-800">{activeOccasion.title}</h2>
-              )}
+              <h2 className="text-2xl font-bold text-gray-900 font-arabic">{activeOccasion.title}</h2>
               
-              <p className="text-gray-600 text-sm mt-2">{activeOccasion.description}</p>
+              <p className="text-gray-500 text-sm mt-3 leading-relaxed">{activeOccasion.description}</p>
             </div>
             
-            <div className="shrink-0 bg-emerald-50 p-3 rounded-lg text-emerald-700 text-center border border-emerald-100 min-w-[80px]">
-              <CalendarCheck className="w-5 h-5 mx-auto mb-1" />
-              <span className="text-xs font-bold block">Ends</span>
-              <span className="text-xs">{new Date(activeOccasion.endDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+            <div className="shrink-0 bg-gray-50 p-4 rounded-xl text-center border border-gray-200 min-w-[90px] flex flex-col items-center justify-center">
+              <CalendarCheck className="w-5 h-5 text-gray-400 mb-1" />
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide block">Ends On</span>
+              <span className="text-sm font-bold text-gray-800">{new Date(activeOccasion.endDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
             </div>
           </div>
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex p-1 bg-emerald-100/50 rounded-lg">
+        <div className="flex p-1.5 bg-gray-200/50 rounded-xl backdrop-blur-sm">
           <button
             onClick={() => setMode('manual')}
-            className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${
-              mode === 'manual' ? 'bg-white text-emerald-800 shadow-sm' : 'text-emerald-600 hover:bg-emerald-100'
+            className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${
+              mode === 'manual' ? 'bg-white text-emerald-800 shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
             }`}
           >
             Enter Manually
           </button>
           <button
             onClick={() => setMode('import')}
-            className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${
-              mode === 'import' ? 'bg-white text-emerald-800 shadow-sm' : 'text-emerald-600 hover:bg-emerald-100'
+            className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${
+              mode === 'import' ? 'bg-white text-emerald-800 shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
             }`}
           >
             Paste Message
@@ -185,28 +179,27 @@ export const PublicSubmission: React.FC<PublicSubmissionProps> = ({
 
         {/* Success & AI Dua Section */}
         {lastEntry && !isSubmitting && (
-           <div className="bg-white border border-emerald-200 rounded-xl p-6 shadow-sm animate-fade-in relative overflow-hidden">
-             <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
-             <div className="flex items-start gap-3">
-                <div className="bg-emerald-100 p-2 rounded-full text-emerald-600 mt-1">
-                   <CalendarCheck size={20} />
+           <div className="bg-white border-l-4 border-emerald-500 rounded-r-xl shadow-lg p-6 animate-fade-in-up">
+             <div className="flex items-start gap-4">
+                <div className="bg-emerald-100 p-2.5 rounded-full text-emerald-600 mt-1 shrink-0">
+                   <Check className="w-5 h-5" />
                 </div>
                 <div className="flex-1">
-                    <h3 className="font-bold text-gray-800">JazakAllah Khair!</h3>
-                    <p className="text-gray-600 text-sm mt-1">Your contribution has been recorded.</p>
+                    <h3 className="font-bold text-gray-900 text-lg">JazakAllah Khair!</h3>
+                    <p className="text-gray-600 text-sm mt-1">Your contribution has been recorded successfully.</p>
                     
                     {!generatedDua ? (
                        <button 
                          onClick={handleGenerateDua}
                          disabled={isGeneratingDua}
-                         className="mt-4 flex items-center gap-2 text-sm bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-100 transition-colors"
+                         className="mt-5 flex items-center gap-2 text-xs font-bold bg-indigo-50 text-indigo-600 px-4 py-2.5 rounded-lg hover:bg-indigo-100 transition-colors uppercase tracking-wide"
                        >
                          {isGeneratingDua ? <Loader2 className="animate-spin w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
-                         Generate Personal Dua with AI
+                         Generate Personal Dua
                        </button>
                     ) : (
-                      <div className="mt-4 bg-indigo-50/50 p-4 rounded-lg border border-indigo-100">
-                         <h4 className="text-xs font-bold text-indigo-400 uppercase mb-1 flex items-center gap-1">
+                      <div className="mt-5 bg-gradient-to-br from-indigo-50 to-white p-5 rounded-xl border border-indigo-100 shadow-inner">
+                         <h4 className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                            <Sparkles size={12} /> AI Generated Dua
                          </h4>
                          <p className="text-indigo-900 italic font-serif text-lg leading-relaxed">
@@ -217,7 +210,7 @@ export const PublicSubmission: React.FC<PublicSubmissionProps> = ({
                 </div>
                 <button 
                   onClick={() => setLastEntry(null)} 
-                  className="text-gray-400 hover:text-gray-600 text-xs underline"
+                  className="text-gray-300 hover:text-gray-500 text-sm font-medium"
                 >
                   Dismiss
                 </button>
@@ -227,28 +220,34 @@ export const PublicSubmission: React.FC<PublicSubmissionProps> = ({
 
         {/* Content Forms */}
         {isSubmitting ? (
-           <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-              <Loader2 className="w-8 h-8 animate-spin text-emerald-600 mb-2" />
-              <p>Syncing with online database...</p>
+           <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-gray-100">
+              <Loader2 className="w-10 h-10 animate-spin text-emerald-600 mx-auto mb-4" />
+              <p className="text-gray-600 font-medium">Syncing with our records...</p>
            </div>
         ) : (
           <div className="transition-all duration-300">
             {mode === 'manual' ? (
               <ManualEntryForm 
                 activeOccasion={activeOccasion}
+                occasions={activeOccasionsList} // Pass occasions to show dropdown
+                onOccasionChange={setActiveOccasionId} // Pass handler
                 existingEntries={existingEntries} 
-                // We do NOT pass occasions here anymore because we handle selection at the top level in this view
                 onAdd={handleManualAdd} 
               />
             ) : (
               <MessageImporter 
                 activeOccasion={activeOccasion}
-                // We do NOT pass occasions here anymore because we handle selection at the top level in this view
+                occasions={activeOccasionsList}
+                onOccasionChange={setActiveOccasionId}
                 onImport={handleImport} 
               />
             )}
           </div>
         )}
+        
+        <div className="text-center text-xs text-gray-400 py-6">
+          © {new Date().getFullYear()} IbadatConnect. May Allah accept from all of us.
+        </div>
       </div>
     </div>
   );

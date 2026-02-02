@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Layout, Menu, Home, Upload, CalendarDays, PlusCircle, HandHeart, Eye, X, List, LogOut } from 'lucide-react';
+import { Layout, Menu, Home, Upload, CalendarDays, PlusCircle, HandHeart, Eye, X, List, LogOut, ChevronRight, Loader2 } from 'lucide-react';
 import { Dashboard } from './components/Dashboard';
 import { MessageImporter } from './components/MessageImporter';
 import { ManualEntryForm } from './components/ManualEntryForm';
@@ -13,23 +13,15 @@ import { Login } from './components/Login';
 import { ToastContainer } from './components/Toast';
 import { IbadatEntry, Occasion, ViewMode, ToastMessage, ToastType } from './types';
 import { findActiveOccasion } from './utils';
+import { db } from './services/database';
 
-// Mock data initialization
-const INITIAL_OCCASIONS: Occasion[] = [
-  {
-    id: '1',
-    title: 'Ramadan 2025 Khatam',
-    startDate: '2025-03-01',
-    endDate: '2025-03-30',
-    description: 'Collecting Quran recitations for the last 10 days.',
-    status: 'active'
-  }
-];
+// Initial placeholder until data loads
+const INITIAL_OCCASIONS: Occasion[] = [];
 
 const App = () => {
   const [view, setView] = useState<ViewMode>(ViewMode.DASHBOARD);
   const [occasions, setOccasions] = useState<Occasion[]>(INITIAL_OCCASIONS);
-  const [activeOccasionId, setActiveOccasionId] = useState<string>('1');
+  const [activeOccasionId, setActiveOccasionId] = useState<string>('');
   const [entries, setEntries] = useState<IbadatEntry[]>([]);
   const [isPublicMode, setIsPublicMode] = useState(false);
   const [publicEventId, setPublicEventId] = useState<string | null>(null);
@@ -38,8 +30,9 @@ const App = () => {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
+  const [isLoadingData, setIsLoadingData] = useState(true);
 
-  // Load from local storage and handle Auth
+  // Initial Load (Supabase + Auth)
   useEffect(() => {
     // Check URL for public mode and specific event
     const params = new URLSearchParams(window.location.search);
@@ -50,32 +43,44 @@ const App = () => {
       if (evtId) setPublicEventId(evtId);
     }
 
-    try {
-      const savedEntries = localStorage.getItem('ibadat_entries');
-      if (savedEntries) setEntries(JSON.parse(savedEntries));
-    } catch (e) {
-      console.error("Failed to parse entries from local storage", e);
-    }
+    const checkAuthAndLoad = async () => {
+        const authStatus = localStorage.getItem('ibadat_auth');
+        if (authStatus === 'true') {
+          setIsAuthenticated(true);
+        }
+        setIsAuthChecking(false);
 
-    try {
-      const savedOccasions = localStorage.getItem('ibadat_occasions');
-      if (savedOccasions) setOccasions(JSON.parse(savedOccasions));
-    } catch (e) {
-      console.error("Failed to parse occasions from local storage", e);
-    }
+        try {
+            const [fetchedOccasions, fetchedEntries] = await Promise.all([
+                db.getOccasions(),
+                db.getEntries()
+            ]);
+            
+            setOccasions(fetchedOccasions);
+            setEntries(fetchedEntries);
+            
+            // Set active occasion
+            if (fetchedOccasions.length > 0) {
+                 const paramEvent = params.get('eventId');
+                 const found = fetchedOccasions.find(o => o.id === paramEvent);
+                 if (found) {
+                     setActiveOccasionId(found.id);
+                 } else {
+                     // Default to first active
+                     const active = fetchedOccasions.find(o => o.status === 'active') || fetchedOccasions[0];
+                     setActiveOccasionId(active.id);
+                 }
+            }
+        } catch (e) {
+            console.error("Failed to load data", e);
+            addToast("Failed to connect to database", "error");
+        } finally {
+            setIsLoadingData(false);
+        }
+    };
 
-    const authStatus = localStorage.getItem('ibadat_auth');
-    if (authStatus === 'true') {
-      setIsAuthenticated(true);
-    }
-    setIsAuthChecking(false);
+    checkAuthAndLoad();
   }, []);
-
-  // Save to local storage
-  useEffect(() => {
-    localStorage.setItem('ibadat_entries', JSON.stringify(entries));
-    localStorage.setItem('ibadat_occasions', JSON.stringify(occasions));
-  }, [entries, occasions]);
 
   // Toast Management
   const addToast = (message: string, type: ToastType = 'info') => {
@@ -87,36 +92,74 @@ const App = () => {
     setToasts(prev => prev.filter(t => t.id !== id));
   };
 
-  // Determine active occasion dynamically if current ID is invalid or outdated
-  // For the dashboard, we stick to what the user clicked.
-  // For public mode, we calculate it.
   const activeOccasion = occasions.find(o => o.id === activeOccasionId) || occasions[0];
 
-  const handleImport = (newEntries: IbadatEntry[]) => {
-    setEntries(prev => [...prev, ...newEntries]);
-    if (!isPublicMode) {
-        setView(ViewMode.DASHBOARD);
-        addToast(`${newEntries.length} entries added successfully`, 'success');
+  // --- CRUD Handlers ---
+
+  const handleImport = async (newEntries: IbadatEntry[]) => {
+    try {
+        await db.saveEntries(newEntries);
+        setEntries(prev => [...prev, ...newEntries]);
+        if (!isPublicMode) {
+            setView(ViewMode.DASHBOARD);
+            addToast(`${newEntries.length} entries added successfully`, 'success');
+        }
+    } catch (e) {
+        addToast("Error saving entries", "error");
     }
   };
 
-  const handleManualAdd = (newEntries: IbadatEntry[]) => {
-    setEntries(prev => [...prev, ...newEntries]);
-    if (!isPublicMode) {
-        addToast(`${newEntries.length} entries added successfully`, 'success');
+  const handleManualAdd = async (newEntries: IbadatEntry[]) => {
+    try {
+        await db.saveEntries(newEntries);
+        setEntries(prev => [...prev, ...newEntries]);
+        if (!isPublicMode) {
+            addToast(`${newEntries.length} entries added successfully`, 'success');
+        }
+    } catch (e) {
+        addToast("Error saving entries", "error");
     }
   };
 
-  const handleUpdateEntry = (updatedEntry: IbadatEntry) => {
-    setEntries(prev => prev.map(e => e.id === updatedEntry.id ? updatedEntry : e));
-    setEditingEntry(null);
-    addToast('Entry updated', 'success');
+  const handleUpdateEntry = async (updatedEntry: IbadatEntry) => {
+    try {
+        await db.updateEntry(updatedEntry);
+        setEntries(prev => prev.map(e => e.id === updatedEntry.id ? updatedEntry : e));
+        setEditingEntry(null);
+        addToast('Entry updated', 'success');
+    } catch (e) {
+        addToast("Error updating entry", "error");
+    }
   };
 
-  const handleDeleteEntry = (id: string) => {
-    setEntries(prev => prev.filter(e => e.id !== id));
-    setEditingEntry(null);
-    addToast('Entry deleted', 'error');
+  const handleDeleteEntry = async (id: string) => {
+    try {
+        await db.deleteEntry(id);
+        setEntries(prev => prev.filter(e => e.id !== id));
+        setEditingEntry(null);
+        addToast('Entry deleted', 'error');
+    } catch (e) {
+        addToast("Error deleting entry", "error");
+    }
+  };
+
+  // Occasion Handlers
+  const handleSaveOccasion = async (occasion: Occasion) => {
+      await db.saveOccasion(occasion);
+      setOccasions(prev => {
+          const exists = prev.find(o => o.id === occasion.id);
+          if (exists) {
+              return prev.map(o => o.id === occasion.id ? occasion : o);
+          }
+          return [...prev, occasion];
+      });
+      addToast("Event saved successfully", "success");
+  };
+
+  const handleDeleteOccasion = async (id: string) => {
+      await db.deleteOccasion(id);
+      setOccasions(prev => prev.filter(o => o.id !== id));
+      addToast("Event deleted", "info");
   };
 
   const openTestPublicView = () => {
@@ -144,8 +187,11 @@ const App = () => {
   // --- RENDERING ---
 
   if (isPublicMode) {
+    if (isLoadingData) {
+        return <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]"><Loader2 className="animate-spin text-emerald-600" /></div>;
+    }
     return (
-      <div className="relative">
+      <div className="relative font-sans antialiased text-gray-900 bg-[#f8fafc]">
         <ToastContainer toasts={toasts} removeToast={removeToast} />
         <PublicSubmission 
             occasions={occasions} 
@@ -157,17 +203,17 @@ const App = () => {
         {/* Floating button to exit test mode */}
         <button 
             onClick={() => setIsPublicMode(false)}
-            className="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-full shadow-lg z-50 text-sm flex items-center gap-2 hover:bg-gray-900"
+            className="fixed bottom-4 right-4 bg-gray-900 text-white px-5 py-2.5 rounded-full shadow-xl z-50 text-sm flex items-center gap-2 hover:bg-black transition-transform hover:-translate-y-1"
         >
-            Exit Public Preview
+            <LogOut size={14} /> Exit Public Preview
         </button>
       </div>
     );
   }
 
   // Auth Check Loading State
-  if (isAuthChecking) {
-    return <div className="min-h-screen bg-[#f0fdf4]" />;
+  if (isAuthChecking || isLoadingData) {
+    return <div className="min-h-screen bg-[#f0fdf4] flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-emerald-600"/></div>;
   }
 
   // Unauthenticated View
@@ -186,12 +232,15 @@ const App = () => {
   // Authenticated Main App
   const renderContent = () => {
     const NoEventState = () => (
-        <div className="flex flex-col items-center justify-center h-64 text-gray-500">
-            <CalendarDays className="w-12 h-12 mb-2 text-gray-300" />
-            <p className="mb-4">No active event selected.</p>
+        <div className="flex flex-col items-center justify-center h-96 text-gray-500 bg-white rounded-2xl border border-dashed border-gray-300">
+            <div className="p-4 bg-gray-50 rounded-full mb-4">
+              <CalendarDays className="w-10 h-10 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-700 mb-1">No Active Event</h3>
+            <p className="mb-6 text-sm text-gray-400">Select an event to start collecting.</p>
             <button 
                 onClick={handleGoToEvents}
-                className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-emerald-700 transition-colors"
+                className="bg-emerald-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors shadow-sm"
             >
                 Create or Select Event
             </button>
@@ -205,7 +254,8 @@ const App = () => {
         return (
           <EventManager 
             occasions={occasions} 
-            setOccasions={setOccasions} 
+            onSave={handleSaveOccasion}
+            onDelete={handleDeleteOccasion}
             activeOccasionId={activeOccasionId}
             setActiveOccasionId={setActiveOccasionId}
           />
@@ -252,14 +302,31 @@ const App = () => {
     }
   };
 
+  const SidebarItem = ({ icon: Icon, label, active, onClick }: { icon: any, label: string, active: boolean, onClick: () => void }) => (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group ${
+        active 
+          ? 'bg-emerald-50 text-emerald-700 shadow-sm ring-1 ring-emerald-100' 
+          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+      }`}
+    >
+      <div className="flex items-center gap-3">
+        <Icon size={18} className={active ? 'text-emerald-600' : 'text-gray-400 group-hover:text-gray-600'} />
+        {label}
+      </div>
+      {active && <ChevronRight size={14} className="text-emerald-400" />}
+    </button>
+  );
+
   return (
-    <div className="flex min-h-screen bg-[#f0fdf4]">
+    <div className="flex min-h-screen bg-[#f8fafc] font-sans">
       <ToastContainer toasts={toasts} removeToast={removeToast} />
       
       {/* Mobile Menu Backdrop */}
       {isMobileMenuOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-20 md:hidden animate-fade-in"
+          className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-20 md:hidden animate-fade-in"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
@@ -277,120 +344,112 @@ const App = () => {
 
       {/* Sidebar */}
       <aside 
-        className={`w-64 bg-white border-r border-emerald-100 flex flex-col fixed inset-y-0 left-0 z-30 transition-transform duration-300 transform ${
-          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-        } md:translate-x-0 md:static`}
+        className={`w-72 bg-white border-r border-gray-100 flex flex-col fixed inset-y-0 left-0 z-30 transition-transform duration-300 ease-in-out transform ${
+          isMobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
+        } md:translate-x-0 md:static md:shadow-none`}
       >
-        <div className="p-6 border-b border-emerald-100 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-emerald-800 font-arabic flex items-center gap-2">
-            <HandHeart className="w-8 h-8 text-emerald-600" />
-            IbadatConnect
-          </h1>
+        <div className="p-8 pb-4">
+          <div className="flex items-center gap-3 text-emerald-800 mb-8">
+            <img src="/perlogo.png" alt="IbadatConnect" className="w-auto h-10 rounded-lg shadow-sm object-contain" />
+            <div>
+              <h1 className="text-xl font-bold font-arabic leading-none">IbadatConnect</h1>
+              <p className="text-[10px] text-emerald-600/70 font-bold tracking-widest uppercase mt-1">Admin Portal</p>
+            </div>
+          </div>
+          
           <button 
-            className="md:hidden text-gray-500"
+            className="md:hidden absolute top-6 right-4 text-gray-400 hover:text-gray-600"
             onClick={() => setIsMobileMenuOpen(false)}
           >
             <X size={24} />
           </button>
         </div>
         
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          <button
-            onClick={() => handleNavClick(ViewMode.DASHBOARD)}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-              view === ViewMode.DASHBOARD ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50'
-            }`}
-          >
-            <Home size={20} /> Dashboard
-          </button>
-          
-          <button
-            onClick={() => handleNavClick(ViewMode.EVENT_MANAGER)}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-              view === ViewMode.EVENT_MANAGER ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50'
-            }`}
-          >
-            <CalendarDays size={20} /> Events
-          </button>
+        <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto">
+          <SidebarItem 
+            icon={Home} 
+            label="Dashboard" 
+            active={view === ViewMode.DASHBOARD} 
+            onClick={() => handleNavClick(ViewMode.DASHBOARD)} 
+          />
+          <SidebarItem 
+            icon={CalendarDays} 
+            label="Events" 
+            active={view === ViewMode.EVENT_MANAGER} 
+            onClick={() => handleNavClick(ViewMode.EVENT_MANAGER)} 
+          />
 
-          <div className="pt-4 pb-2 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+          <div className="pt-6 pb-2 px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
             Collection
           </div>
 
-          <button
-            onClick={() => handleNavClick(ViewMode.MANUAL_ENTRY)}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-              view === ViewMode.MANUAL_ENTRY ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50'
-            }`}
-          >
-            <PlusCircle size={20} /> Manual Entry
-          </button>
+          <SidebarItem 
+            icon={PlusCircle} 
+            label="Manual Entry" 
+            active={view === ViewMode.MANUAL_ENTRY} 
+            onClick={() => handleNavClick(ViewMode.MANUAL_ENTRY)} 
+          />
+          <SidebarItem 
+            icon={Upload} 
+            label="WhatsApp Import" 
+            active={view === ViewMode.IMPORT} 
+            onClick={() => handleNavClick(ViewMode.IMPORT)} 
+          />
+          <SidebarItem 
+            icon={List} 
+            label="All Entries" 
+            active={view === ViewMode.ENTRIES_LIST} 
+            onClick={() => handleNavClick(ViewMode.ENTRIES_LIST)} 
+          />
 
-          <button
-            onClick={() => handleNavClick(ViewMode.IMPORT)}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-              view === ViewMode.IMPORT ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50'
-            }`}
-          >
-            <Upload size={20} /> WhatsApp Import
-          </button>
-          
-          <button
-            onClick={() => handleNavClick(ViewMode.ENTRIES_LIST)}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-              view === ViewMode.ENTRIES_LIST ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50'
-            }`}
-          >
-            <List size={20} /> All Entries
-          </button>
-
-          <div className="pt-4 pb-2 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+          <div className="pt-6 pb-2 px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
              Ceremony
           </div>
 
-          <button
-            onClick={() => handleNavClick(ViewMode.DUA_MODE)}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-              view === ViewMode.DUA_MODE ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50'
-            }`}
-          >
-            <HandHeart size={20} /> Dua Mode
-          </button>
+          <SidebarItem 
+            icon={HandHeart} 
+            label="Dua Mode" 
+            active={view === ViewMode.DUA_MODE} 
+            onClick={() => handleNavClick(ViewMode.DUA_MODE)} 
+          />
         </nav>
 
-        <div className="p-4 border-t border-emerald-100 space-y-2">
+        <div className="p-4 border-t border-gray-100 space-y-2 bg-gray-50/50">
            <button 
              onClick={() => {
                openTestPublicView();
                setIsMobileMenuOpen(false);
              }}
-             className="w-full flex items-center justify-center gap-2 bg-emerald-50 text-emerald-700 p-2 rounded-lg text-sm font-medium hover:bg-emerald-100 transition-colors"
+             className="w-full flex items-center gap-3 px-4 py-2.5 text-gray-600 hover:bg-white hover:shadow-sm rounded-xl text-sm font-medium transition-all"
            >
-             <Eye size={16} /> Test Public View
+             <Eye size={16} /> View Public Form
            </button>
            
            <button 
              onClick={handleLogout}
-             className="w-full flex items-center justify-center gap-2 text-red-600 p-2 rounded-lg text-sm font-medium hover:bg-red-50 transition-colors"
+             className="w-full flex items-center gap-3 px-4 py-2.5 text-red-600 hover:bg-red-50 rounded-xl text-sm font-medium transition-all"
            >
-             <LogOut size={16} /> Logout
+             <LogOut size={16} /> Sign Out
            </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 w-full md:w-auto p-4 md:p-8 overflow-y-auto">
+      <main className="flex-1 w-full md:w-auto overflow-y-auto bg-[#f8fafc]">
         {/* Mobile Header */}
-        <div className="md:hidden flex items-center justify-between mb-6 bg-white p-4 rounded-xl shadow-sm border border-emerald-100">
-           <h1 className="font-bold text-emerald-800 flex items-center gap-2">
-             <HandHeart className="w-6 h-6" /> IbadatConnect
-           </h1>
-           <button onClick={() => setIsMobileMenuOpen(true)}>
-             <Menu className="text-gray-600" />
+        <div className="md:hidden sticky top-0 z-10 flex items-center justify-between bg-white/80 backdrop-blur-md px-4 py-3 border-b border-gray-100 shadow-sm">
+           <div className="flex items-center gap-2 font-bold text-emerald-800">
+             <img src="/perlogo.png" alt="Logo" className="w-auto h-8 rounded-md object-contain" />
+             IbadatConnect
+           </div>
+           <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+             <Menu className="w-6 h-6" />
            </button>
         </div>
 
-        {renderContent()}
+        <div className="p-4 md:p-8 max-w-7xl mx-auto">
+          {renderContent()}
+        </div>
       </main>
     </div>
   );

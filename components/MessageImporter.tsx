@@ -93,7 +93,7 @@ export const MessageImporter: React.FC<MessageImporterProps> = ({
                 <Calendar size={14} /> Contributing To
               </label>
               <select
-                className="w-full text-sm border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 bg-white"
+                className="w-full text-sm bg-white text-gray-900 border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                 value={activeOccasion.id}
                 onChange={(e) => onOccasionChange(e.target.value)}
               >
@@ -109,7 +109,7 @@ export const MessageImporter: React.FC<MessageImporterProps> = ({
           {!parsedResults ? (
             <div className="space-y-4">
               <textarea
-                className="w-full h-48 p-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none text-sm"
+                className="w-full h-48 p-4 rounded-lg bg-white text-gray-900 border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none text-sm"
                 placeholder="Example: Sister Ayesha read Surah Mulk 3 times. Brother Ali finished Juz 30. Someone read Yasin."
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
@@ -169,7 +169,7 @@ export const MessageImporter: React.FC<MessageImporterProps> = ({
                           <input 
                             value={result.contributorName}
                             onChange={(e) => handleEditResult(idx, 'contributorName', e.target.value)}
-                            className="bg-transparent border-none w-full focus:ring-0 p-0 text-gray-800 font-medium placeholder-gray-400"
+                            className="bg-transparent text-gray-900 border-none w-full focus:ring-0 p-0 font-medium placeholder-gray-400"
                             placeholder="Community Member"
                           />
                         </td>
@@ -177,7 +177,7 @@ export const MessageImporter: React.FC<MessageImporterProps> = ({
                           <input 
                             value={result.ibadatType}
                             onChange={(e) => handleEditResult(idx, 'ibadatType', e.target.value)}
-                            className="bg-transparent border-none w-full focus:ring-0 p-0 text-gray-600"
+                            className="bg-transparent text-gray-600 border-none w-full focus:ring-0 p-0"
                           />
                         </td>
                         <td className="px-4 py-2">
@@ -185,14 +185,14 @@ export const MessageImporter: React.FC<MessageImporterProps> = ({
                             type="number"
                             value={result.count}
                             onChange={(e) => handleEditResult(idx, 'count', parseFloat(e.target.value))}
-                            className="bg-transparent border-none w-20 focus:ring-0 p-0 text-gray-800"
+                            className="bg-transparent text-gray-800 border-none w-20 focus:ring-0 p-0"
                           />
                         </td>
                         <td className="px-4 py-2">
                           <input 
                             value={result.unit}
                             onChange={(e) => handleEditResult(idx, 'unit', e.target.value)}
-                            className="bg-transparent border-none w-20 focus:ring-0 p-0 text-gray-600"
+                            className="bg-transparent text-gray-600 border-none w-20 focus:ring-0 p-0"
                           />
                         </td>
                         <td className="px-4 py-2">

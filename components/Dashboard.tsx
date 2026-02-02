@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { IbadatEntry, Occasion, ToastType } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Sparkles, BookOpen, Users, Heart, Share2, Edit2, Loader2 } from 'lucide-react';
+import { Sparkles, BookOpen, Users, Heart, Share2, Edit2, Loader2, ArrowRight } from 'lucide-react';
 import { normalizeIbadatName } from '../utils';
 import { getTrendsAnalysis } from '../services/geminiService';
 
@@ -21,7 +21,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ entries, activeOccasion, o
   if (!activeOccasion) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-8 bg-white rounded-xl shadow-sm border border-emerald-100">
-        <Sparkles className="w-16 h-16 text-emerald-300 mb-4" />
+        <img src="/perlogo.png" alt="Logo" className="w-auto h-20 mb-4 rounded-xl shadow-sm object-contain" />
         <h2 className="text-2xl font-bold text-gray-800">No Active Occasion</h2>
         <p className="text-gray-500 mt-2">Please select or create an occasion to start tracking ibadat.</p>
       </div>
@@ -72,109 +72,152 @@ export const Dashboard: React.FC<DashboardProps> = ({ entries, activeOccasion, o
     setIsAnalyzing(false);
   };
 
+  // Helper for avatar initials
+  const getInitials = (name: string) => {
+    if (!name) return '?';
+    return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  };
+
+  // Helper for random light color for avatar bg
+  const getAvatarColor = (name: string) => {
+    const colors = ['bg-red-100 text-red-700', 'bg-blue-100 text-blue-700', 'bg-green-100 text-green-700', 'bg-yellow-100 text-yellow-700', 'bg-purple-100 text-purple-700', 'bg-pink-100 text-pink-700'];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    return colors[Math.abs(hash) % colors.length];
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
-        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h2 className="text-emerald-100 font-medium mb-1">Current Event</h2>
-            <h1 className="text-3xl font-bold font-arabic tracking-wide">{activeOccasion.title}</h1>
-            <p className="text-emerald-100 mt-2 text-sm opacity-90">{activeOccasion.description}</p>
+      <div className="bg-gradient-to-r from-emerald-600 to-teal-700 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden group">
+        {/* Subtle geometric pattern overlay */}
+        <div 
+          className="absolute inset-0 opacity-10 pointer-events-none" 
+          style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.8) 1px, transparent 0)', backgroundSize: '24px 24px' }}
+        ></div>
+        
+        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="bg-emerald-500/30 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider border border-emerald-400/20 backdrop-blur-sm">Active Event</span>
+            </div>
+            <h1 className="text-4xl font-bold font-arabic tracking-wide mb-2 leading-tight">{activeOccasion.title}</h1>
+            <p className="text-emerald-100 text-base max-w-xl opacity-90">{activeOccasion.description}</p>
           </div>
-          <div className="flex flex-col items-end gap-2">
-             <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm text-center min-w-[100px]">
-                <span className="text-xs uppercase opacity-75 block">Target Date</span>
-                <span className="text-sm font-semibold">{new Date(activeOccasion.endDate).toLocaleDateString()}</span>
+          <div className="flex flex-col items-end gap-3 w-full md:w-auto">
+             <div className="text-right">
+                <p className="text-emerald-200 text-xs font-bold uppercase tracking-widest mb-1">Completion Date</p>
+                <p className="text-xl font-semibold bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm inline-block">
+                  {new Date(activeOccasion.endDate).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
+                </p>
              </div>
              <button 
                 onClick={handleShare}
-                className="flex items-center gap-2 bg-white text-emerald-700 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-50 transition-colors shadow-sm"
+                className="w-full md:w-auto flex items-center justify-center gap-2 bg-white text-emerald-800 px-6 py-3 rounded-xl text-sm font-bold hover:bg-emerald-50 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
              >
-                <Share2 size={16} /> Share Form
+                <Share2 size={18} /> Public Form Link
              </button>
           </div>
         </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white p-5 rounded-xl border border-emerald-100 shadow-sm flex items-center space-x-4">
-          <div className="p-3 bg-emerald-50 rounded-full text-emerald-600">
-            <Users size={24} />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex items-start space-x-4 group">
+          <div className="p-4 bg-emerald-50 rounded-2xl text-emerald-600 group-hover:bg-emerald-100 transition-colors">
+            <Users size={28} />
           </div>
           <div>
-            <p className="text-sm text-gray-500">Contributors Count</p>
-            <p className="text-2xl font-bold text-gray-800">{totalContributors}</p>
+            <p className="text-sm font-medium text-gray-400 mb-1 uppercase tracking-wide">Contributors</p>
+            <p className="text-3xl font-bold text-gray-800">{totalContributors}</p>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-xl border border-emerald-100 shadow-sm flex items-center space-x-4">
-          <div className="p-3 bg-blue-50 rounded-full text-blue-600">
-            <BookOpen size={24} />
+        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex items-start space-x-4 group">
+          <div className="p-4 bg-blue-50 rounded-2xl text-blue-600 group-hover:bg-blue-100 transition-colors">
+            <BookOpen size={28} />
           </div>
           <div>
-            <p className="text-sm text-gray-500">Different Acts</p>
-            <p className="text-2xl font-bold text-gray-800">{aggregatedData.length}</p>
+            <p className="text-sm font-medium text-gray-400 mb-1 uppercase tracking-wide">Unique Deeds</p>
+            <p className="text-3xl font-bold text-gray-800">{aggregatedData.length}</p>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-xl border border-emerald-100 shadow-sm flex items-center space-x-4">
-          <div className="p-3 bg-amber-50 rounded-full text-amber-600">
-            <Heart size={24} />
+        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex items-start space-x-4 group">
+          <div className="p-4 bg-amber-50 rounded-2xl text-amber-600 group-hover:bg-amber-100 transition-colors">
+            <Heart size={28} />
           </div>
           <div>
-            <p className="text-sm text-gray-500">Total Count</p>
-            <p className="text-2xl font-bold text-gray-800">{totalCount.toLocaleString()}</p>
+            <p className="text-sm font-medium text-gray-400 mb-1 uppercase tracking-wide">Total Count</p>
+            <p className="text-3xl font-bold text-gray-800">{totalCount.toLocaleString()}</p>
           </div>
         </div>
       </div>
 
       {/* AI Insights Block */}
       {currentEntries.length > 0 && (
-         <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-5">
-            <div className="flex justify-between items-start">
-               <div className="flex items-center gap-2 text-indigo-800 font-bold mb-2">
-                 <Sparkles size={18} />
-                 <h3>AI Community Insight</h3>
-               </div>
-               {!analysis && (
-                 <button 
-                   onClick={runAnalysis} 
-                   disabled={isAnalyzing}
-                   className="text-xs bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full hover:bg-indigo-200 transition-colors flex items-center gap-1"
-                 >
-                   {isAnalyzing ? <Loader2 size={12} className="animate-spin" /> : 'Analyze Trends'}
-                 </button>
-               )}
+         <div className="bg-gradient-to-br from-indigo-50 to-white border border-indigo-100 rounded-2xl p-6 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-10">
+              <Sparkles size={100} className="text-indigo-500" />
             </div>
-            {analysis ? (
-              <p className="text-indigo-900 text-sm leading-relaxed animate-fade-in">
-                {analysis}
-              </p>
-            ) : (
-              <p className="text-indigo-400 text-sm italic">
-                Generate an AI summary of what your community is achieving together.
-              </p>
-            )}
+            <div className="relative z-10">
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex items-center gap-2 text-indigo-800 font-bold">
+                  <div className="bg-indigo-100 p-1.5 rounded-lg">
+                    <Sparkles size={18} className="text-indigo-600" />
+                  </div>
+                  <h3>Community Spiritual Insight</h3>
+                </div>
+                {!analysis && (
+                  <button 
+                    onClick={runAnalysis} 
+                    disabled={isAnalyzing}
+                    className="text-xs bg-indigo-600 text-white px-4 py-2 rounded-full hover:bg-indigo-700 transition-colors flex items-center gap-2 shadow-sm"
+                  >
+                    {isAnalyzing ? <Loader2 size={14} className="animate-spin" /> : 'Generate Analysis'}
+                    {!isAnalyzing && <ArrowRight size={14} />}
+                  </button>
+                )}
+              </div>
+              
+              {analysis ? (
+                <p className="text-indigo-900 text-sm leading-relaxed font-medium animate-fade-in bg-white/50 p-4 rounded-xl border border-indigo-50 backdrop-blur-sm">
+                  {analysis}
+                </p>
+              ) : (
+                <p className="text-indigo-400 text-sm italic pl-9">
+                  Tap generate to use AI to summarize what your community has achieved together in this campaign.
+                </p>
+              )}
+            </div>
          </div>
       )}
 
       {/* Charts & Recent */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl border border-emerald-100 shadow-sm">
-          <h3 className="text-lg font-bold text-gray-800 mb-6">Distribution of Ibadat</h3>
+        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+          <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
+            <div className="w-1 h-6 bg-emerald-500 rounded-full"></div>
+            Distribution of Ibadat
+          </h3>
           {aggregatedData.length > 0 ? (
-            <div className="h-64">
+            <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={aggregatedData} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E7EB" />
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
                   <XAxis type="number" hide />
-                  <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
-                  <Tooltip 
-                    cursor={{ fill: 'transparent' }}
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                  <YAxis 
+                    dataKey="name" 
+                    type="category" 
+                    width={110} 
+                    tick={{ fontSize: 12, fill: '#64748b', fontWeight: 500 }} 
+                    axisLine={false}
+                    tickLine={false}
                   />
-                  <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                  <Tooltip 
+                    cursor={{ fill: '#f0fdf4' }}
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', padding: '12px' }}
+                  />
+                  <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={24}>
                     {aggregatedData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
@@ -183,31 +226,44 @@ export const Dashboard: React.FC<DashboardProps> = ({ entries, activeOccasion, o
               </ResponsiveContainer>
             </div>
           ) : (
-             <div className="h-64 flex items-center justify-center text-gray-400 italic">No data yet</div>
+             <div className="h-80 flex items-center justify-center text-gray-400 italic bg-gray-50 rounded-xl border border-dashed border-gray-200">
+               No data to display
+             </div>
           )}
         </div>
 
-        <div className="bg-white p-6 rounded-xl border border-emerald-100 shadow-sm overflow-hidden flex flex-col">
-          <h3 className="text-lg font-bold text-gray-800 mb-4">Recent Contributions</h3>
-          <div className="overflow-y-auto flex-1 pr-2">
+        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col h-[420px]">
+          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+             <div className="w-1 h-6 bg-blue-500 rounded-full"></div>
+             Recent Contributions
+          </h3>
+          <div className="overflow-y-auto flex-1 pr-2 -mr-2">
             {currentEntries.length === 0 ? (
-               <div className="h-full flex items-center justify-center text-gray-400 italic">No entries yet</div>
+               <div className="h-full flex flex-col items-center justify-center text-gray-400 italic bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                  <Heart className="w-10 h-10 mb-2 opacity-20" />
+                  <p>No entries yet</p>
+               </div>
             ) : (
               <ul className="space-y-3">
                 {[...currentEntries].reverse().slice(0, 8).map((entry) => (
-                  <li key={entry.id} className="group flex justify-between items-center p-3 bg-emerald-50/50 rounded-lg text-sm border border-emerald-50 hover:border-emerald-200 transition-colors">
-                    <div className="flex flex-col">
-                      <span className="font-semibold text-gray-800">{entry.contributorName}</span>
-                      <span className="text-xs text-gray-500">{new Date(entry.dateAdded).toLocaleDateString()}</span>
+                  <li key={entry.id} className="group flex justify-between items-center p-3 rounded-xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold ${getAvatarColor(entry.contributorName)} shadow-sm`}>
+                        {getInitials(entry.contributorName)}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="font-semibold text-gray-800 text-sm">{entry.contributorName}</span>
+                        <span className="text-[10px] text-gray-400 uppercase tracking-wide">{new Date(entry.dateAdded).toLocaleDateString()}</span>
+                      </div>
                     </div>
                     <div className="flex items-center gap-3">
                        <div className="text-right">
                           <span className="block font-bold text-emerald-700">{entry.count} {entry.unit}</span>
-                          <span className="text-xs text-emerald-600">{normalizeIbadatName(entry.ibadatType)}</span>
+                          <span className="text-xs text-gray-500 font-medium">{normalizeIbadatName(entry.ibadatType)}</span>
                        </div>
                        <button 
                          onClick={() => onEdit(entry)}
-                         className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-100 rounded-md opacity-0 group-hover:opacity-100 transition-all"
+                         className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
                          title="Edit Contribution"
                        >
                          <Edit2 size={14} />

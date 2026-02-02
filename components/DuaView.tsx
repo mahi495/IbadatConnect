@@ -1,6 +1,6 @@
 import React from 'react';
 import { IbadatEntry, Occasion, IbadatCategory } from '../types';
-import { Copy, Share2, Sparkles, ChevronDown } from 'lucide-react';
+import { Copy, Share2, ChevronDown } from 'lucide-react';
 import { normalizeIbadatName } from '../utils';
 
 interface DuaViewProps {
@@ -75,48 +75,66 @@ export const DuaView: React.FC<DuaViewProps> = ({
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-fade-in pb-12">
       <div className="text-center space-y-4">
-        <div className="inline-flex p-3 bg-amber-100 rounded-full text-amber-600 shadow-sm">
-           <Sparkles className="w-8 h-8" />
+        <div className="inline-block relative">
+           <img 
+             src="/perlogo.png" 
+             alt="Logo" 
+             className="w-auto h-20 rounded-xl shadow-md object-contain border-4 border-white"
+           />
+           <div className="absolute -bottom-1 -right-1 bg-emerald-500 w-6 h-6 rounded-full border-2 border-white"></div>
         </div>
         
         <div>
            {occasions && occasions.length > 1 && onOccasionChange ? (
-             <div className="relative inline-block">
+             <div className="relative inline-block group">
                <select
                  value={activeOccasion.id}
                  onChange={(e) => onOccasionChange(e.target.value)}
-                 className="appearance-none bg-transparent text-3xl font-bold text-gray-800 font-arabic text-center py-1 pr-8 pl-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-500 rounded-lg hover:bg-gray-50 transition-colors"
+                 className="appearance-none bg-transparent text-3xl font-bold text-gray-800 font-arabic text-center py-1 pr-10 pl-2 cursor-pointer focus:outline-none focus:ring-0 hover:text-emerald-800 transition-colors"
                >
                  {occasions.map(o => (
                    <option key={o.id} value={o.id}>{o.title}</option>
                  ))}
                </select>
-               <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 w-6 h-6 pointer-events-none" />
+               <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 w-6 h-6 pointer-events-none group-hover:text-emerald-600 transition-colors" />
              </div>
            ) : (
              <h2 className="text-3xl font-bold text-gray-800 font-arabic">{activeOccasion.title}</h2>
            )}
-           <p className="text-gray-600">Consolidated Dua List</p>
+           <p className="text-gray-500 font-serif italic mt-1 text-lg">Consolidated Deed Summary</p>
         </div>
 
-        <div className="text-sm text-gray-500 max-w-lg mx-auto">
-          Reviewing {entries.length} contributions for {activeOccasion.title}. 
+        <div className="text-sm text-gray-500 max-w-lg mx-auto bg-white px-4 py-1.5 rounded-full border border-gray-100 inline-block shadow-sm">
+          Tracking <span className="font-bold text-gray-900">{entries.length}</span> contributions. 
           {activeOccasion.status === 'active' ? (
-             <span className="text-emerald-600 font-medium ml-1">Event is Active.</span>
+             <span className="text-emerald-600 font-medium ml-1">● Active</span>
           ) : (
-             <span className="text-gray-400 font-medium ml-1">Event is Closed.</span>
+             <span className="text-gray-400 font-medium ml-1">● Closed</span>
           )}
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-lg border border-amber-100 overflow-hidden">
-        <div className="p-8 bg-amber-50/50">
-          <div className="prose prose-emerald max-w-none font-serif">
-            <h3 className="text-2xl text-emerald-800 font-arabic mb-6 border-b border-emerald-100 pb-2">
-              Presented Deeds
-            </h3>
+      <div className="relative rounded-2xl shadow-xl overflow-hidden border border-amber-200/50">
+        {/* Parchment Background */}
+        <div className="absolute inset-0 bg-[#fffdf5]" style={{ backgroundImage: 'radial-gradient(#f3e5c2 1px, transparent 0)', backgroundSize: '40px 40px', opacity: 0.5 }}></div>
+        
+        {/* Content */}
+        <div className="relative p-10 md:p-14">
+            {/* Decorative Corners */}
+            <div className="absolute top-0 left-0 w-20 h-20 border-l-4 border-t-4 border-amber-200 rounded-tl-3xl m-4 opacity-50"></div>
+            <div className="absolute top-0 right-0 w-20 h-20 border-r-4 border-t-4 border-amber-200 rounded-tr-3xl m-4 opacity-50"></div>
+            <div className="absolute bottom-0 left-0 w-20 h-20 border-l-4 border-b-4 border-amber-200 rounded-bl-3xl m-4 opacity-50"></div>
+            <div className="absolute bottom-0 right-0 w-20 h-20 border-r-4 border-b-4 border-amber-200 rounded-br-3xl m-4 opacity-50"></div>
+
+          <div className="prose prose-emerald max-w-none font-serif relative z-10">
+            <div className="text-center mb-10 pb-4 border-b-2 border-double border-amber-200">
+               <h3 className="text-3xl text-emerald-900 font-arabic mb-2">
+                 Presented Deeds
+               </h3>
+               <p className="text-emerald-800/60 italic text-sm">May these efforts be accepted</p>
+            </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
               {Object.values(IbadatCategory).map((cat) => {
                 const catEntries = grouped[cat];
                 if (!catEntries || catEntries.length === 0) return null;
@@ -124,16 +142,18 @@ export const DuaView: React.FC<DuaViewProps> = ({
                 const aggregated = aggregateByType(catEntries);
 
                 return (
-                  <div key={cat} className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
-                    <h4 className="text-lg font-bold text-emerald-700 mb-3 flex items-center gap-2">
+                  <div key={cat} className="break-inside-avoid">
+                    <h4 className="text-lg font-bold text-emerald-800 mb-4 flex items-center gap-2 uppercase tracking-widest text-xs border-b border-emerald-100 pb-1">
                       {cat}
                     </h4>
-                    <ul className="space-y-2">
+                    <ul className="space-y-3">
                       {aggregated.map((item, idx) => (
-                        <li key={idx} className="flex justify-between items-center text-gray-700">
-                          <span className="capitalize">{item.name}</span>
-                          <span className="font-bold bg-emerald-50 px-2 py-0.5 rounded text-emerald-800 text-sm">
-                            {item.count} {item.unit}
+                        <li key={idx} className="flex justify-between items-baseline text-gray-800 group">
+                          <span className="capitalize font-medium text-lg text-emerald-950 group-hover:text-emerald-700 transition-colors">{item.name}</span>
+                          <span className="relative">
+                            <span className="font-bold text-lg">{item.count}</span>
+                            <span className="text-xs text-gray-500 ml-1 font-sans font-normal uppercase">{item.unit}</span>
+                            <span className="absolute -bottom-1 left-0 w-full h-px bg-amber-200/50"></span>
                           </span>
                         </li>
                       ))}
@@ -144,27 +164,31 @@ export const DuaView: React.FC<DuaViewProps> = ({
             </div>
 
             {entries.length === 0 && (
-              <div className="text-center py-12">
-                 <p className="text-gray-500 italic mb-2">No deeds recorded for this event yet.</p>
-                 <p className="text-xs text-gray-400">Share the public link to start collecting.</p>
+              <div className="text-center py-16">
+                 <p className="text-gray-400 italic mb-2 text-lg">No deeds recorded for this event yet.</p>
+                 <p className="text-sm text-gray-400/70">Share the public link to start collecting.</p>
               </div>
             )}
+            
+            <div className="mt-12 text-center text-emerald-900/60 text-sm italic font-sans">
+               Generated by IbadatConnect
+            </div>
           </div>
         </div>
 
-        <div className="bg-gray-50 px-8 py-4 border-t border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="text-sm text-gray-500">
-            Total: {entries.length} items
+        <div className="bg-[#fcfbf7] px-8 py-5 border-t border-amber-100 flex flex-col sm:flex-row justify-between items-center gap-4 relative z-20">
+          <div className="text-sm text-gray-500 font-medium">
+            Total Items: {entries.length}
           </div>
           <div className="flex gap-3">
             <button
               onClick={handleCopy}
               disabled={entries.length === 0}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors shadow-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-5 py-2.5 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition-colors shadow-md font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5"
             >
               <Copy className="w-4 h-4" /> Copy Text
             </button>
-            <button className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm font-medium">
+            <button className="flex items-center gap-2 px-5 py-2.5 bg-white text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors shadow-sm font-medium hover:text-emerald-700 hover:border-emerald-200">
               <Share2 className="w-4 h-4" /> Share
             </button>
           </div>

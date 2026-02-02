@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HandHeart, Lock, Mail, ArrowRight, Loader2 } from 'lucide-react';
+import { Lock, Mail, ArrowRight, Loader2 } from 'lucide-react';
 
 interface LoginProps {
   onLogin: () => void;
@@ -33,9 +33,11 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 flex items-center justify-center p-4">
       <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-emerald-100 animate-fade-in-up">
         <div className="text-center mb-8">
-          <div className="inline-flex p-3 bg-emerald-100 rounded-full text-emerald-600 mb-4 shadow-sm">
-            <HandHeart className="w-8 h-8" />
-          </div>
+          <img 
+            src="/perlogo.png" 
+            alt="IbadatConnect" 
+            className="w-auto h-24 mb-6 rounded-xl shadow-xl hover:scale-105 transition-transform duration-500 mx-auto object-contain" 
+          />
           <h1 className="text-2xl font-bold text-gray-800 font-arabic">IbadatConnect</h1>
           <p className="text-emerald-600 text-xs font-medium uppercase tracking-wide mt-1 mb-2">
             Automating the collection, elevating the connection
@@ -51,7 +53,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <input
                 type="email"
                 required
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
+                className="w-full pl-10 pr-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
                 placeholder="admin@ibadatconnect.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -66,7 +68,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <input
                 type="password"
                 required
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
+                className="w-full pl-10 pr-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

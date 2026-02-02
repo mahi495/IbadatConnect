@@ -115,7 +115,7 @@ export const EntriesList: React.FC<EntriesListProps> = ({
             <input 
               type="text" 
               placeholder="Search..." 
-              className="w-full pl-10 pr-4 py-2 text-sm border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+              className="w-full pl-10 pr-4 py-2 text-sm bg-white text-gray-900 border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -126,7 +126,7 @@ export const EntriesList: React.FC<EntriesListProps> = ({
              <div className="flex items-center gap-1 bg-white border border-gray-300 rounded-lg px-2 py-1">
                <Filter className="text-gray-400 w-4 h-4" />
                <select 
-                  className="text-sm border-none focus:ring-0 py-1 pr-8 pl-1 bg-transparent max-w-[150px]"
+                  className="text-sm border-none focus:ring-0 py-1 pr-8 pl-1 bg-transparent text-gray-900 max-w-[150px]"
                   value={filterEventId}
                   onChange={(e) => setFilterEventId(e.target.value)}
                >
@@ -145,7 +145,7 @@ export const EntriesList: React.FC<EntriesListProps> = ({
                   </span>
                   <input 
                     type="date"
-                    className="pl-8 pr-2 py-2 text-sm border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 w-36"
+                    className="pl-8 pr-2 py-2 text-sm bg-white text-gray-900 border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 w-36"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
                     placeholder="Start Date"
@@ -158,7 +158,7 @@ export const EntriesList: React.FC<EntriesListProps> = ({
                   </span>
                   <input 
                     type="date"
-                    className="pl-8 pr-2 py-2 text-sm border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 w-36"
+                    className="pl-8 pr-2 py-2 text-sm bg-white text-gray-900 border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 w-36"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
                     placeholder="End Date"
