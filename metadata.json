@@ -1,0 +1,5 @@
+{
+  "name": "IbadatConnect",
+  "description": "A tool for Islamic schools to aggregate acts of worship (Ibadat) from WhatsApp chats for community Dua gatherings.",
+  "requestFramePermissions": []
+}
