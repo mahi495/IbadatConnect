@@ -77,7 +77,7 @@ export const DuaView: React.FC<DuaViewProps> = ({
       <div className="text-center space-y-4">
         <div className="inline-block relative">
            <img 
-             src="/perlogo.png" 
+             src="/logo.png" 
              alt="Logo" 
              className="w-auto h-20 rounded-xl shadow-md object-contain border-4 border-white"
            />

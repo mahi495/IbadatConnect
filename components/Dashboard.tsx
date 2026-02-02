@@ -21,7 +21,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ entries, activeOccasion, o
   if (!activeOccasion) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-8 bg-white rounded-xl shadow-sm border border-emerald-100">
-        <img src="/perlogo.png" alt="Logo" className="w-auto h-20 mb-4 rounded-xl shadow-sm object-contain" />
+        <img src="/logo.png" alt="Logo" className="w-auto h-20 mb-4 rounded-xl shadow-sm object-contain" />
         <h2 className="text-2xl font-bold text-gray-800">No Active Occasion</h2>
         <p className="text-gray-500 mt-2">Please select or create an occasion to start tracking ibadat.</p>
       </div>

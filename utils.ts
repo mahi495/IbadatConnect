@@ -1,21 +1,36 @@
 import { Occasion } from "./types";
 
+export const ALL_SURAHS = [
+  "Al-Fatihah", "Al-Baqarah", "Al-Imran", "An-Nisa", "Al-Ma'idah", "Al-An'am", "Al-A'raf", "Al-Anfal", "At-Tawbah", "Yunus",
+  "Hud", "Yusuf", "Ar-Ra'd", "Ibrahim", "Al-Hijr", "An-Nahl", "Al-Isra", "Al-Kahf", "Maryam", "Ta-Ha",
+  "Al-Anbiya", "Al-Hajj", "Al-Mu'minun", "An-Nur", "Al-Furqan", "Ash-Shu'ara", "An-Naml", "Al-Qasas", "Al-Ankabut", "Ar-Rum",
+  "Luqman", "As-Sajdah", "Al-Ahzab", "Saba", "Fatir", "Ya-Sin", "As-Saffat", "Sad", "Az-Zumar", "Ghafir",
+  "Fussilat", "Ash-Shura", "Az-Zukhruf", "Ad-Dukhan", "Al-Jathiyah", "Al-Ahqaf", "Muhammad", "Al-Fath", "Al-Hujurat", "Qaf",
+  "Adh-Dhariyat", "At-Tur", "An-Najm", "Al-Qamar", "Ar-Rahman", "Al-Waqi'ah", "Al-Hadid", "Al-Mujadila", "Al-Hashr", "Al-Mumtahanah",
+  "As-Saff", "Al-Jumu'ah", "Al-Munafiqun", "At-Taghabun", "At-Talaq", "At-Tahrim", "Al-Mulk", "Al-Qalam", "Al-Haqqah", "Al-Ma'arij",
+  "Nuh", "Al-Jinn", "Al-Muzzammil", "Al-Muddaththir", "Al-Qiyamah", "Al-Insan", "Al-Mursalat", "An-Naba", "An-Nazi'at", "Abasa",
+  "At-Takwir", "Al-Infitar", "Al-Mutaffifin", "Al-Inshiqaq", "Al-Buruj", "At-Tariq", "Al-A'la", "Al-Ghashiyah", "Al-Fajr", "Al-Balad",
+  "Ash-Shams", "Al-Layl", "Ad-Duhaa", "Ash-Sharh", "At-Tin", "Al-Alaq", "Al-Qadr", "Al-Bayyinah", "Az-Zalzalah", "Al-Adiyat",
+  "Al-Qari'ah", "At-Takathur", "Al-Asr", "Al-Humazah", "Al-Fil", "Quraysh", "Al-Ma'un", "Al-Kawthar", "Al-Kafirun", "An-Nasr",
+  "Al-Masad", "Al-Ikhlas", "Al-Falaq", "An-Nas"
+];
+
 export const normalizeIbadatName = (input: string): string => {
   if (!input) return input;
   const lower = input.toLowerCase().trim();
 
   // --- Surah Normalization ---
-  if (lower.match(/^(surah\s+)?yase+n|ya-sin$/)) return 'Surah Yasin';
-  if (lower.match(/^(surah\s+)?(al-)?mulk$/)) return 'Surah Mulk';
-  if (lower.match(/^(surah\s+)?(ar-)?rahman$/)) return 'Surah Rahman';
-  if (lower.match(/^(surah\s+)?(al-)?waqiah?$/)) return 'Surah Waqiah';
-  if (lower.match(/^(surah\s+)?(al-)?kahf$/)) return 'Surah Kahf';
-  if (lower.match(/^(surah\s+)?(al-)?fatiha$/)) return 'Surah Fatiha';
-  if (lower.match(/^(surah\s+)?ikhlas$/)) return 'Surah Ikhlas';
-  if (lower.match(/^(surah\s+)?falaq$/)) return 'Surah Falaq';
-  if (lower.match(/^(surah\s+)?naas|nas$/)) return 'Surah Nas';
-  if (lower.match(/^(surah\s+)?baqarah?$/)) return 'Surah Baqarah';
-  if (lower.match(/^(surah\s+)?jumu['`]?ah?$/)) return 'Surah Jumuah';
+  if (lower.match(/^(surah\s+)?yase+n|ya-sin$/)) return 'Surah Ya-Sin';
+  if (lower.match(/^(surah\s+)?(al-)?mulk$/)) return 'Surah Al-Mulk';
+  if (lower.match(/^(surah\s+)?(ar-)?rahman$/)) return 'Surah Ar-Rahman';
+  if (lower.match(/^(surah\s+)?(al-)?waqiah?$/)) return 'Surah Al-Waqi\'ah';
+  if (lower.match(/^(surah\s+)?(al-)?kahf$/)) return 'Surah Al-Kahf';
+  if (lower.match(/^(surah\s+)?(al-)?fatiha$/)) return 'Surah Al-Fatihah';
+  if (lower.match(/^(surah\s+)?ikhlas$/)) return 'Surah Al-Ikhlas';
+  if (lower.match(/^(surah\s+)?falaq$/)) return 'Surah Al-Falaq';
+  if (lower.match(/^(surah\s+)?naas|nas$/)) return 'Surah An-Nas';
+  if (lower.match(/^(surah\s+)?baqarah?$/)) return 'Surah Al-Baqarah';
+  if (lower.match(/^(surah\s+)?jumu['`]?ah?$/)) return 'Surah Al-Jumu\'ah';
   
   // --- Verses ---
   if (lower.includes('kursi')) return 'Ayatul Kursi';

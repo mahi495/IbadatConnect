@@ -34,9 +34,13 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
       <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-emerald-100 animate-fade-in-up">
         <div className="text-center mb-8">
           <img 
-            src="/perlogo.png" 
+            src="/logo.png" 
             alt="IbadatConnect" 
             className="w-auto h-24 mb-6 rounded-xl shadow-xl hover:scale-105 transition-transform duration-500 mx-auto object-contain" 
+            onError={(e) => {
+              e.currentTarget.onerror = null; 
+              e.currentTarget.style.display = 'none';
+            }}
           />
           <h1 className="text-2xl font-bold text-gray-800 font-arabic">IbadatConnect</h1>
           <p className="text-emerald-600 text-xs font-medium uppercase tracking-wide mt-1 mb-2">

@@ -350,7 +350,7 @@ const App = () => {
       >
         <div className="p-8 pb-4">
           <div className="flex items-center gap-3 text-emerald-800 mb-8">
-            <img src="/perlogo.png" alt="IbadatConnect" className="w-auto h-10 rounded-lg shadow-sm object-contain" />
+            <img src="/logo.png" alt="IbadatConnect" className="w-auto h-10 rounded-lg shadow-sm object-contain" />
             <div>
               <h1 className="text-xl font-bold font-arabic leading-none">IbadatConnect</h1>
               <p className="text-[10px] text-emerald-600/70 font-bold tracking-widest uppercase mt-1">Admin Portal</p>
@@ -439,7 +439,7 @@ const App = () => {
         {/* Mobile Header */}
         <div className="md:hidden sticky top-0 z-10 flex items-center justify-between bg-white/80 backdrop-blur-md px-4 py-3 border-b border-gray-100 shadow-sm">
            <div className="flex items-center gap-2 font-bold text-emerald-800">
-             <img src="/perlogo.png" alt="Logo" className="w-auto h-8 rounded-md object-contain" />
+             <img src="/logo.png" alt="Logo" className="w-auto h-8 rounded-md object-contain" />
              IbadatConnect
            </div>
            <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg">

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { IbadatEntry, IbadatCategory, Occasion } from '../types';
-import { Send, Plus, Minus, ScrollText, Calendar, Info, Sparkles, Loader2, History, X, CheckCircle, AlertTriangle, ChevronRight, BookOpen } from 'lucide-react';
-import { normalizeIbadatName } from '../utils';
+import { Send, Plus, Minus, ScrollText, Calendar, Info, Sparkles, Loader2, History, X, CheckCircle, AlertTriangle, ChevronRight, BookOpen, Search, ChevronDown, ChevronUp, Check } from 'lucide-react';
+import { normalizeIbadatName, ALL_SURAHS } from '../utils';
 import { normalizeDeedWithAI } from '../services/geminiService';
 
 interface ManualEntryFormProps {
@@ -62,9 +62,18 @@ export const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
     unit: 'juz'
   });
 
+  // Occasion Dropdown State
+  const [isOccasionDropdownOpen, setIsOccasionDropdownOpen] = useState(false);
+
   // Quran Selection State
   const [selectedJuz, setSelectedJuz] = useState<number[]>([]);
   const [isWholeQuran, setIsWholeQuran] = useState(false);
+  const [isJuzDropdownOpen, setIsJuzDropdownOpen] = useState(false);
+
+  // Surah Selection State
+  const [selectedSurahs, setSelectedSurahs] = useState<string[]>([]);
+  const [surahSearch, setSurahSearch] = useState('');
+  const [isSurahDropdownOpen, setIsSurahDropdownOpen] = useState(false);
 
   // Staging List
   const [pendingEntries, setPendingEntries] = useState<Omit<IbadatEntry, 'id' | 'occasionId' | 'dateAdded' | 'contributorName'>[]>([]);
@@ -72,6 +81,9 @@ export const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
 
   const [isNormalizing, setIsNormalizing] = useState(false);
   const typeInputRef = useRef<HTMLInputElement>(null);
+  const juzDropdownRef = useRef<HTMLDivElement>(null);
+  const surahDropdownRef = useRef<HTMLDivElement>(null);
+  const occasionDropdownRef = useRef<HTMLDivElement>(null);
 
   const categoryDefaults: Record<IbadatCategory, { unit: string, placeholder: string }> = {
     [IbadatCategory.QURAN]: { unit: 'juz', placeholder: 'e.g., Juz 1, Khatam' },
@@ -81,6 +93,23 @@ export const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
     [IbadatCategory.NAWAFIL]: { unit: 'rakat', placeholder: 'e.g., Tahajjud, Ishraq' },
     [IbadatCategory.OTHER]: { unit: 'times', placeholder: 'Any other good deed' },
   };
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (juzDropdownRef.current && !juzDropdownRef.current.contains(event.target as Node)) {
+        setIsJuzDropdownOpen(false);
+      }
+      if (surahDropdownRef.current && !surahDropdownRef.current.contains(event.target as Node)) {
+        setIsSurahDropdownOpen(false);
+      }
+      if (occasionDropdownRef.current && !occasionDropdownRef.current.contains(event.target as Node)) {
+        setIsOccasionDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Generate clean suggestions based on existing entries
   const suggestions = useMemo(() => {
@@ -159,13 +188,20 @@ export const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
       unit: categoryDefaults[cat].unit,
       ibadatType: ''
     }));
-    // Reset Quran selection
+    // Reset specific selections
     setSelectedJuz([]);
     setIsWholeQuran(false);
+    setSelectedSurahs([]);
+    setSurahSearch('');
+    setIsJuzDropdownOpen(false);
+    setIsSurahDropdownOpen(false);
   };
 
   const toggleJuz = (num: number) => {
-    if (isWholeQuran) setIsWholeQuran(false);
+    if (isWholeQuran) {
+        setIsWholeQuran(false);
+        setCurrentInput(prev => ({ ...prev, unit: 'juz' }));
+    }
     setSelectedJuz(prev => 
         prev.includes(num) ? prev.filter(n => n !== num) : [...prev, num]
     );
@@ -174,7 +210,19 @@ export const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
   const toggleWholeQuran = () => {
     const newState = !isWholeQuran;
     setIsWholeQuran(newState);
-    if (newState) setSelectedJuz([]);
+    if (newState) {
+        setSelectedJuz([]);
+        setCurrentInput(prev => ({ ...prev, unit: 'khatam' }));
+        setIsJuzDropdownOpen(false);
+    } else {
+        setCurrentInput(prev => ({ ...prev, unit: 'juz' }));
+    }
+  };
+
+  const toggleSurah = (surah: string) => {
+    setSelectedSurahs(prev => 
+      prev.includes(surah) ? prev.filter(s => s !== surah) : [...prev, surah]
+    );
   };
 
   const handleAIMagicFix = async () => {
@@ -213,7 +261,7 @@ export const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
                 category: IbadatCategory.QURAN,
                 ibadatType: 'Whole Quran',
                 count: multiplier,
-                unit: 'khatam'
+                unit: currentInput.unit
             });
         } else {
             const sorted = [...selectedJuz].sort((a,b) => a - b);
@@ -222,7 +270,7 @@ export const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
                     category: IbadatCategory.QURAN,
                     ibadatType: `Juz ${juzNum}`,
                     count: multiplier,
-                    unit: 'juz'
+                    unit: currentInput.unit
                 });
             });
         }
@@ -232,6 +280,30 @@ export const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
         // Reset selections
         setSelectedJuz([]);
         setIsWholeQuran(false);
+        setIsJuzDropdownOpen(false);
+        // Reset to defaults
+        setCurrentInput(prev => ({ ...prev, count: 1, unit: 'juz' }));
+        return;
+    }
+
+    // --- Surah Specific Logic ---
+    if (currentInput.category === IbadatCategory.SURAH) {
+        if (selectedSurahs.length === 0) return;
+        
+        const multiplier = Math.max(1, currentInput.count);
+        const entriesToAdd = selectedSurahs.map(surah => ({
+             category: IbadatCategory.SURAH,
+             ibadatType: `Surah ${surah}`,
+             count: multiplier,
+             unit: currentInput.unit
+        }));
+
+        setPendingEntries(prev => [...prev, ...entriesToAdd]);
+
+        // Reset selections
+        setSelectedSurahs([]);
+        setSurahSearch('');
+        setIsSurahDropdownOpen(false);
         setCurrentInput(prev => ({ ...prev, count: 1 }));
         return;
     }
@@ -269,6 +341,15 @@ export const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
     setPendingEntries(prev => prev.filter((_, i) => i !== index));
   };
 
+  const updatePendingCount = (index: number, val: string) => {
+    const count = parseInt(val) || 0;
+    setPendingEntries(prev => {
+        const updated = [...prev];
+        updated[index] = { ...updated[index], count: count };
+        return updated;
+    });
+  };
+
   const handleSubmitAll = () => {
     const finalEntries: IbadatEntry[] = [];
     const nameToUse = contributorName.trim() || 'Community Member';
@@ -289,22 +370,9 @@ export const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
     });
 
     // 2. If user typed something in input but didn't click "Add to List", include it too (Smart Submit)
-    // Only applies to non-Quran text inputs or if the quran selection hasn't been added to pending yet (optional, but safer to force explicit add for multi-select)
-    // For Quran, we force explicit "Add" because it's complex. For others, allow implicit submit.
-    if (currentInput.category !== IbadatCategory.QURAN && currentInput.ibadatType.trim()) {
-      finalEntries.push({
-        id: crypto.randomUUID(),
-        occasionId: activeOccasion.id,
-        contributorName: nameToUse,
-        category: currentInput.category,
-        ibadatType: normalizeIbadatName(currentInput.ibadatType),
-        count: Number(currentInput.count),
-        unit: currentInput.unit,
-        dateAdded: date
-      });
-    } else if (currentInput.category === IbadatCategory.QURAN && (selectedJuz.length > 0 || isWholeQuran)) {
-       // Also support smart submit for Quran selection
-       const multiplier = Math.max(1, currentInput.count);
+    const multiplier = Math.max(1, currentInput.count);
+    
+    if (currentInput.category === IbadatCategory.QURAN && (selectedJuz.length > 0 || isWholeQuran)) {
        if (isWholeQuran) {
           finalEntries.push({
             id: crypto.randomUUID(),
@@ -313,7 +381,7 @@ export const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
             category: IbadatCategory.QURAN,
             ibadatType: 'Whole Quran',
             count: multiplier,
-            unit: 'khatam',
+            unit: currentInput.unit,
             dateAdded: date
           });
        } else {
@@ -325,11 +393,35 @@ export const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
                 category: IbadatCategory.QURAN,
                 ibadatType: `Juz ${juzNum}`,
                 count: multiplier,
-                unit: 'juz',
+                unit: currentInput.unit,
                 dateAdded: date
              });
           });
        }
+    } else if (currentInput.category === IbadatCategory.SURAH && selectedSurahs.length > 0) {
+       selectedSurahs.forEach(surah => {
+           finalEntries.push({
+              id: crypto.randomUUID(),
+              occasionId: activeOccasion.id,
+              contributorName: nameToUse,
+              category: IbadatCategory.SURAH,
+              ibadatType: `Surah ${surah}`,
+              count: multiplier,
+              unit: currentInput.unit,
+              dateAdded: date
+           });
+       });
+    } else if (currentInput.category !== IbadatCategory.QURAN && currentInput.category !== IbadatCategory.SURAH && currentInput.ibadatType.trim()) {
+      finalEntries.push({
+        id: crypto.randomUUID(),
+        occasionId: activeOccasion.id,
+        contributorName: nameToUse,
+        category: currentInput.category,
+        ibadatType: normalizeIbadatName(currentInput.ibadatType),
+        count: Number(currentInput.count),
+        unit: currentInput.unit,
+        dateAdded: date
+      });
     }
 
     if (finalEntries.length === 0) return;
@@ -348,6 +440,11 @@ export const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
     }));
     setSelectedJuz([]);
     setIsWholeQuran(false);
+    setSelectedSurahs([]);
+    setSurahSearch('');
+    setIsJuzDropdownOpen(false);
+    setIsSurahDropdownOpen(false);
+    setIsOccasionDropdownOpen(false);
     setSimilarityWarning(null);
   };
 
@@ -358,7 +455,21 @@ export const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
     if (currentInput.category === IbadatCategory.QURAN) {
         return !isWholeQuran && selectedJuz.length === 0;
     }
+    if (currentInput.category === IbadatCategory.SURAH) {
+        return selectedSurahs.length === 0;
+    }
     return !currentInput.ibadatType.trim();
+  };
+
+  const filteredSurahs = useMemo(() => {
+    return ALL_SURAHS.filter(s => s.toLowerCase().includes(surahSearch.toLowerCase()));
+  }, [surahSearch]);
+
+  const hasSmartSubmitContent = () => {
+      if (pendingEntries.length > 0) return true;
+      if (currentInput.category === IbadatCategory.QURAN) return selectedJuz.length > 0 || isWholeQuran;
+      if (currentInput.category === IbadatCategory.SURAH) return selectedSurahs.length > 0;
+      return !!currentInput.ibadatType.trim();
   };
 
   return (
@@ -385,18 +496,47 @@ export const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1">
               <Calendar size={14} /> Contributing To
             </label>
-            <div className="relative">
-              <select
-                className="w-full text-sm font-medium text-gray-900 border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 bg-white shadow-sm py-2.5 px-3"
-                value={activeOccasion.id}
-                onChange={(e) => onOccasionChange(e.target.value)}
+            <div className="relative" ref={occasionDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setIsOccasionDropdownOpen(!isOccasionDropdownOpen)}
+                className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg border bg-white transition-all text-sm ${
+                  isOccasionDropdownOpen 
+                    ? 'ring-2 ring-emerald-500 border-emerald-500' 
+                    : 'border-gray-300 hover:border-emerald-400'
+                }`}
               >
-                {occasions.map(o => (
-                  <option key={o.id} value={o.id}>
-                    {o.title} (Ends: {new Date(o.endDate).toLocaleDateString()})
-                  </option>
-                ))}
-              </select>
+                 <span className="font-medium text-gray-900 truncate flex-1 text-left">
+                    {occasions.find(o => o.id === activeOccasion.id)?.title}
+                    <span className="text-gray-400 font-normal ml-2 text-xs">
+                        (Ends: {new Date(occasions.find(o => o.id === activeOccasion.id)?.endDate || '').toLocaleDateString()})
+                    </span>
+                 </span>
+                 {isOccasionDropdownOpen ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
+              </button>
+
+              {isOccasionDropdownOpen && (
+                <div className="absolute z-30 mt-2 w-full bg-white rounded-xl shadow-xl border border-gray-100 p-1 max-h-60 overflow-y-auto animate-fade-in-up">
+                    {occasions.map(o => (
+                        <button
+                            key={o.id}
+                            type="button"
+                            onClick={() => {
+                                onOccasionChange(o.id);
+                                setIsOccasionDropdownOpen(false);
+                            }}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex flex-col ${
+                                activeOccasion.id === o.id
+                                ? 'bg-emerald-50 text-emerald-900 ring-1 ring-emerald-100'
+                                : 'text-gray-700 hover:bg-gray-50'
+                            }`}
+                        >
+                            <span className="font-semibold">{o.title}</span>
+                            <span className="text-xs text-gray-500">Ends: {new Date(o.endDate).toLocaleDateString()}</span>
+                        </button>
+                    ))}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -440,7 +580,7 @@ export const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
                  <div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div>
                  Add Deed
                </h3>
-               {currentInput.category !== IbadatCategory.QURAN && (
+               {currentInput.category !== IbadatCategory.QURAN && currentInput.category !== IbadatCategory.SURAH && (
                   <button 
                       type="button"
                       onClick={handleAIMagicFix}
@@ -502,30 +642,147 @@ export const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
                             <div className="h-px bg-gray-200 flex-1"></div>
                          </div>
 
-                         {/* Juz Grid */}
-                         <div className="grid grid-cols-5 sm:grid-cols-6 gap-2">
-                            {Array.from({ length: 30 }, (_, i) => i + 1).map(num => (
-                                <button
-                                    key={num}
-                                    type="button"
-                                    onClick={() => toggleJuz(num)}
-                                    disabled={isWholeQuran}
-                                    className={`h-9 text-sm font-medium rounded-lg border transition-all ${
-                                        selectedJuz.includes(num)
-                                        ? 'bg-emerald-100 text-emerald-800 border-emerald-500 font-bold shadow-sm'
-                                        : isWholeQuran 
-                                            ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed'
-                                            : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-300 hover:text-emerald-600'
-                                    }`}
-                                >
-                                    {num}
-                                </button>
-                            ))}
+                         {/* Juz Dropdown */}
+                         <div className="relative" ref={juzDropdownRef}>
+                           <button
+                             type="button"
+                             onClick={() => !isWholeQuran && setIsJuzDropdownOpen(!isJuzDropdownOpen)}
+                             disabled={isWholeQuran}
+                             className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border bg-white transition-all text-sm ${
+                               isJuzDropdownOpen 
+                                 ? 'ring-2 ring-emerald-500 border-emerald-500' 
+                                 : 'border-gray-300 hover:border-emerald-400'
+                               } ${isWholeQuran ? 'opacity-50 cursor-not-allowed bg-gray-50' : ''}`}
+                           >
+                              <span className={selectedJuz.length ? 'text-gray-900 font-medium' : 'text-gray-500'}>
+                                {selectedJuz.length > 0 
+                                  ? `Selected ${selectedJuz.length} Juz` 
+                                  : 'Select Juz...'}
+                              </span>
+                              {isJuzDropdownOpen ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
+                           </button>
+
+                           {isJuzDropdownOpen && (
+                              <div className="absolute z-10 mt-2 w-full bg-white rounded-xl shadow-xl border border-gray-100 p-3 max-h-64 overflow-y-auto animate-fade-in-up">
+                                 <div className="grid grid-cols-4 gap-2">
+                                    {Array.from({ length: 30 }, (_, i) => i + 1).map(num => (
+                                      <button
+                                        key={num}
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          toggleJuz(num);
+                                        }}
+                                        className={`h-10 text-sm font-medium rounded-lg border flex items-center justify-center transition-all ${
+                                          selectedJuz.includes(num)
+                                            ? 'bg-emerald-100 text-emerald-800 border-emerald-500 font-bold'
+                                            : 'bg-white text-gray-600 border-gray-100 hover:bg-gray-50'
+                                        }`}
+                                      >
+                                        {num}
+                                      </button>
+                                    ))}
+                                 </div>
+                                 <div className="mt-3 pt-3 border-t border-gray-100 flex justify-end">
+                                    <button 
+                                      type="button"
+                                      onClick={() => setIsJuzDropdownOpen(false)}
+                                      className="text-xs font-bold text-emerald-600 px-3 py-1 bg-emerald-50 rounded-md hover:bg-emerald-100"
+                                    >
+                                      Done
+                                    </button>
+                                 </div>
+                              </div>
+                           )}
                          </div>
                          
                          <div className="min-h-[16px] text-xs text-gray-500">
                              {selectedJuz.length > 0 && !isWholeQuran && (
                                  <span>Selected: <span className="font-medium text-emerald-700">{selectedJuz.sort((a,b)=>a-b).map(j => `Juz ${j}`).join(', ')}</span></span>
+                             )}
+                         </div>
+                    </div>
+                ) : currentInput.category === IbadatCategory.SURAH ? (
+                    // --- SURAH SELECTOR UI ---
+                    <div className="flex-1 w-full space-y-3">
+                         <label className="block text-xs font-medium text-gray-500 ml-1">Select Surahs</label>
+                         
+                         {/* Surah Dropdown */}
+                         <div className="relative" ref={surahDropdownRef}>
+                           <button
+                             type="button"
+                             onClick={() => setIsSurahDropdownOpen(!isSurahDropdownOpen)}
+                             className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border bg-white transition-all text-sm ${
+                               isSurahDropdownOpen 
+                                 ? 'ring-2 ring-emerald-500 border-emerald-500' 
+                                 : 'border-gray-300 hover:border-emerald-400'
+                               }`}
+                           >
+                              <span className={selectedSurahs.length ? 'text-gray-900 font-medium' : 'text-gray-500'}>
+                                {selectedSurahs.length > 0 
+                                  ? `${selectedSurahs.length} Surahs Selected` 
+                                  : 'Select Surahs...'}
+                              </span>
+                              {isSurahDropdownOpen ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
+                           </button>
+
+                           {isSurahDropdownOpen && (
+                             <div className="absolute z-10 mt-2 w-full bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden animate-fade-in-up">
+                                <div className="p-3 bg-gray-50 border-b border-gray-100 sticky top-0">
+                                  <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                                    <input
+                                        type="text"
+                                        placeholder="Search Surah..."
+                                        value={surahSearch}
+                                        onChange={(e) => setSurahSearch(e.target.value)}
+                                        className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-gray-300 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none"
+                                        autoFocus
+                                    />
+                                  </div>
+                                </div>
+                                <div className="max-h-60 overflow-y-auto p-1">
+                                    {filteredSurahs.map((surah) => (
+                                        <label key={surah} className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 cursor-pointer rounded-lg transition-colors">
+                                           <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${selectedSurahs.includes(surah) ? 'bg-emerald-600 border-emerald-600' : 'border-gray-300 bg-white'}`}>
+                                              {selectedSurahs.includes(surah) && <Check size={12} className="text-white" />}
+                                           </div>
+                                           <input
+                                              type="checkbox"
+                                              className="hidden"
+                                              checked={selectedSurahs.includes(surah)}
+                                              onChange={() => toggleSurah(surah)}
+                                           />
+                                           <span className={`text-sm ${selectedSurahs.includes(surah) ? 'font-medium text-emerald-900' : 'text-gray-700'}`}>
+                                             {surah}
+                                           </span>
+                                        </label>
+                                    ))}
+                                    {filteredSurahs.length === 0 && (
+                                        <div className="text-center py-4 text-gray-400 text-sm">
+                                            No Surahs found matching "{surahSearch}"
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="p-2 border-t border-gray-100 flex justify-between items-center bg-gray-50">
+                                   <span className="text-xs text-gray-500 px-2">
+                                     {selectedSurahs.length} selected
+                                   </span>
+                                   <button 
+                                      type="button"
+                                      onClick={() => setIsSurahDropdownOpen(false)}
+                                      className="text-xs font-bold text-emerald-600 px-4 py-1.5 bg-white border border-gray-200 rounded-md hover:bg-emerald-50 shadow-sm"
+                                    >
+                                      Done
+                                    </button>
+                                </div>
+                             </div>
+                           )}
+                         </div>
+
+                         <div className="min-h-[16px] text-xs text-gray-500">
+                             {selectedSurahs.length > 0 && (
+                                 <span>Selected: <span className="font-medium text-emerald-700">{selectedSurahs.length} Surahs</span></span>
                              )}
                          </div>
                     </div>
@@ -571,17 +828,15 @@ export const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
                             onChange={e => setCurrentInput({ ...currentInput, count: parseInt(e.target.value) || 0 })}
                         />
                     </div>
-                    {currentInput.category !== IbadatCategory.QURAN && (
-                        <div className="w-28">
-                            <label className="block text-xs font-medium text-gray-500 mb-1.5 ml-1">Unit</label>
-                            <input
-                                type="text"
-                                className="w-full rounded-xl bg-white text-gray-900 border-gray-300 focus:ring-emerald-500 focus:border-emerald-500 py-2.5 shadow-sm"
-                                value={currentInput.unit}
-                                onChange={e => setCurrentInput({ ...currentInput, unit: e.target.value })}
-                            />
-                        </div>
-                    )}
+                    <div className="w-28">
+                        <label className="block text-xs font-medium text-gray-500 mb-1.5 ml-1">Unit</label>
+                        <input
+                            type="text"
+                            className="w-full rounded-xl bg-white text-gray-900 border-gray-300 focus:ring-emerald-500 focus:border-emerald-500 py-2.5 shadow-sm"
+                            value={currentInput.unit}
+                            onChange={e => setCurrentInput({ ...currentInput, unit: e.target.value })}
+                        />
+                    </div>
                 </div>
 
                 <button
@@ -630,7 +885,16 @@ export const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
                                     <span className="block text-[10px] text-gray-400 font-bold uppercase mt-0.5">{entry.category}</span>
                                 </td>
                                 <td className="px-5 py-3 text-gray-600 font-medium">
-                                    <span className="bg-gray-100 px-2 py-0.5 rounded text-gray-700">{entry.count}</span> <span className="text-gray-400 text-xs">{entry.unit}</span>
+                                    <div className="flex items-center gap-2">
+                                        <input 
+                                            type="number" 
+                                            min="1"
+                                            value={entry.count}
+                                            onChange={(e) => updatePendingCount(idx, e.target.value)}
+                                            className="w-16 px-2 py-1 text-center border border-gray-200 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-sm font-semibold bg-gray-50 focus:bg-white"
+                                        />
+                                        <span className="text-gray-500 text-xs">{entry.unit}</span>
+                                    </div>
                                 </td>
                                 <td className="px-5 py-3 text-right">
                                     <button 
@@ -651,11 +915,11 @@ export const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
         <div className="mt-8 pt-4 border-t border-gray-100">
             <button
                 onClick={handleSubmitAll}
-                disabled={pendingEntries.length === 0 && (currentInput.category === IbadatCategory.QURAN ? selectedJuz.length === 0 && !isWholeQuran : !currentInput.ibadatType.trim())}
+                disabled={!hasSmartSubmitContent()}
                 className="w-full bg-emerald-600 text-white py-3.5 rounded-xl font-bold text-lg hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transform hover:-translate-y-0.5"
             >
                 {pendingEntries.length > 0 
-                    ? `Submit ${pendingEntries.length + ((currentInput.category === IbadatCategory.QURAN ? (selectedJuz.length > 0 || isWholeQuran) : currentInput.ibadatType.trim()) ? 1 : 0)} Entries` 
+                    ? `Submit ${pendingEntries.length + ((currentInput.category === IbadatCategory.QURAN ? (selectedJuz.length > 0 || isWholeQuran) : (currentInput.category === IbadatCategory.SURAH ? selectedSurahs.length > 0 : currentInput.ibadatType.trim())) ? 1 : 0)} Entries` 
                     : "Submit Entry"}
                 <ChevronRight className="w-5 h-5" />
             </button>

@@ -102,7 +102,7 @@ export const PublicSubmission: React.FC<PublicSubmissionProps> = ({
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] p-4">
         <div className="bg-white p-10 rounded-2xl shadow-xl max-w-md text-center border border-gray-100">
-          <img src="/perlogo.png" alt="Logo" className="w-auto h-24 mx-auto mb-6 rounded-xl shadow-md object-contain" />
+          <img src="/logo.png" alt="Logo" className="w-auto h-24 mx-auto mb-6 rounded-xl shadow-md object-contain" />
           <h1 className="text-2xl font-bold text-gray-800 mb-2 font-arabic">IbadatConnect</h1>
           <p className="text-emerald-600 text-xs font-bold uppercase tracking-widest mb-6">
             Automating the collection, elevating the connection
@@ -123,7 +123,7 @@ export const PublicSubmission: React.FC<PublicSubmissionProps> = ({
         
         <div className="max-w-2xl mx-auto flex flex-col items-center text-center relative z-10">
           <div className="bg-white/10 backdrop-blur-md p-2 rounded-xl mb-4 border border-white/20 shadow-xl">
-             <img src="/perlogo.png" alt="Logo" className="w-auto h-16 rounded-lg object-contain" />
+             <img src="/logo.png" alt="Logo" className="w-auto h-16 rounded-lg object-contain" />
           </div>
           <h1 className="text-3xl md:text-4xl font-bold font-arabic mb-2 tracking-wide">IbadatConnect</h1>
           <p className="text-emerald-200/80 text-sm font-medium max-w-sm mx-auto leading-relaxed">
