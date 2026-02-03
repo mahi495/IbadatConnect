@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { IbadatEntry, IbadatCategory, Occasion } from '../types';
-import { X, Save, Trash2, Calendar } from 'lucide-react';
+import { X, Save, Trash2, Calendar, MessageSquareQuote } from 'lucide-react';
 import { normalizeIbadatName } from '../utils';
 
 interface EditEntryModalProps {
@@ -24,27 +24,26 @@ export const EditEntryModal: React.FC<EditEntryModalProps> = ({
     category: entry.category,
     ibadatType: entry.ibadatType,
     count: entry.count,
-    unit: entry.unit
+    unit: entry.unit,
+    notes: entry.notes || ''
   });
 
   const categoryDefaults: Record<IbadatCategory, { unit: string, placeholder: string }> = {
-    [IbadatCategory.QURAN]: { unit: 'juz', placeholder: 'e.g., Juz 1, Khatam' },
+    [IbadatCategory.QURAN]: { unit: 'times', placeholder: 'e.g., Juz 1, Khatam' },
     [IbadatCategory.SURAH]: { unit: 'times', placeholder: 'e.g., Surah Yasin' },
     [IbadatCategory.VERSES]: { unit: 'times', placeholder: 'e.g., Ayatul Kursi' },
-    [IbadatCategory.ZIKR]: { unit: 'times', placeholder: 'e.g., Salawat, Istighfar' },
+    [IbadatCategory.SALAWAT]: { unit: 'times', placeholder: 'e.g., Darood Ibrahimi' },
+    [IbadatCategory.ZIKR]: { unit: 'times', placeholder: 'e.g., Third Kalma' },
     [IbadatCategory.NAWAFIL]: { unit: 'rakat', placeholder: 'e.g., Tahajjud, Ishraq' },
     [IbadatCategory.OTHER]: { unit: 'times', placeholder: 'Any other good deed' },
   };
 
   const handleCategoryChange = (cat: IbadatCategory) => {
-    // Only reset unit/type if category actually changes
     if (cat !== formData.category) {
         setFormData(prev => ({
-        ...prev,
-        category: cat,
-        unit: categoryDefaults[cat].unit,
-        // Optional: clear type or keep it? Usually better to clear to avoid mismatch
-        // But for editing, user might just be fixing the category. Let's keep type unless blank.
+          ...prev,
+          category: cat,
+          unit: categoryDefaults[cat].unit,
         }));
     }
   };
@@ -59,6 +58,7 @@ export const EditEntryModal: React.FC<EditEntryModalProps> = ({
       ibadatType: normalizeIbadatName(formData.ibadatType || formData.category),
       count: Number(formData.count),
       unit: formData.unit,
+      notes: formData.notes.trim() || undefined
     };
     onSave(updated);
   };
@@ -79,8 +79,7 @@ export const EditEntryModal: React.FC<EditEntryModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-4">
-            {/* Occasion Switch */}
+        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Event</label>
               <select
@@ -94,32 +93,44 @@ export const EditEntryModal: React.FC<EditEntryModalProps> = ({
               </select>
             </div>
 
-            {/* Contributor */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Contributor Name</label>
-              <input
-                type="text"
-                className="w-full rounded-lg bg-white text-gray-900 border-gray-300 focus:ring-emerald-500 focus:border-emerald-500"
-                value={formData.contributorName}
-                onChange={e => setFormData({ ...formData, contributorName: e.target.value })}
-                placeholder="Community Member"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Contributor Name</label>
+                <input
+                    type="text"
+                    className="w-full rounded-lg bg-white text-gray-900 border-gray-300 focus:ring-2 focus:ring-emerald-500"
+                    value={formData.contributorName}
+                    onChange={e => setFormData({ ...formData, contributorName: e.target.value })}
+                />
+                </div>
+                <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Intention / Note</label>
+                <div className="relative">
+                    <MessageSquareQuote size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                        type="text"
+                        className="w-full pl-9 rounded-lg bg-white text-gray-900 border-gray-300 focus:ring-2 focus:ring-emerald-500"
+                        value={formData.notes}
+                        onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                        placeholder="Optional details"
+                    />
+                </div>
+                </div>
             </div>
 
-             {/* Category */}
              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
                 <div className="flex flex-wrap gap-2">
                 {Object.values(IbadatCategory).map((cat) => (
                     <button
-                    key={cat}
-                    type="button"
-                    onClick={() => handleCategoryChange(cat)}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
-                        formData.category === cat
-                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                        : 'bg-white text-gray-600 border-gray-200 hover:bg-emerald-50'
-                    }`}
+                      key={cat}
+                      type="button"
+                      onClick={() => handleCategoryChange(cat)}
+                      className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
+                          formData.category === cat
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                          : 'bg-white text-gray-600 border-gray-200 hover:bg-emerald-50'
+                      }`}
                     >
                     {cat}
                     </button>
@@ -127,7 +138,6 @@ export const EditEntryModal: React.FC<EditEntryModalProps> = ({
                 </div>
             </div>
 
-            {/* Details */}
             <div className="grid grid-cols-1 gap-4">
                 <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Specific Deed</label>
@@ -135,7 +145,7 @@ export const EditEntryModal: React.FC<EditEntryModalProps> = ({
                     type="text"
                     required
                     placeholder={categoryDefaults[formData.category].placeholder}
-                    className="w-full rounded-lg bg-white text-gray-900 border-gray-300 focus:ring-emerald-500 focus:border-emerald-500"
+                    className="w-full rounded-lg bg-white text-gray-900 border-gray-300 focus:ring-2 focus:ring-emerald-500"
                     value={formData.ibadatType}
                     onChange={e => setFormData({ ...formData, ibadatType: e.target.value })}
                 />
@@ -148,7 +158,7 @@ export const EditEntryModal: React.FC<EditEntryModalProps> = ({
                         type="number"
                         min="1"
                         required
-                        className="w-full rounded-lg bg-white text-gray-900 border-gray-300 focus:ring-emerald-500 focus:border-emerald-500"
+                        className="w-full rounded-lg bg-white text-gray-900 border-gray-300 focus:ring-2 focus:ring-emerald-500"
                         value={formData.count}
                         onChange={e => setFormData({ ...formData, count: parseInt(e.target.value) || 0 })}
                     />
@@ -158,7 +168,7 @@ export const EditEntryModal: React.FC<EditEntryModalProps> = ({
                     <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
                     <input
                     type="text"
-                    className="w-full rounded-lg bg-white text-gray-900 border-gray-300 focus:ring-emerald-500 focus:border-emerald-500"
+                    className="w-full rounded-lg bg-white text-gray-900 border-gray-300 focus:ring-2 focus:ring-emerald-500"
                     value={formData.unit}
                     onChange={e => setFormData({ ...formData, unit: e.target.value })}
                     />

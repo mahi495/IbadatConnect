@@ -1,8 +1,8 @@
-
 export enum IbadatCategory {
   QURAN = 'Quran',
   SURAH = 'Surah',
   VERSES = 'Verses',
+  SALAWAT = 'Salawat/Darood', // Separated from Zikr for better reporting
   ZIKR = 'Zikr/Words',
   NAWAFIL = 'Nawafil',
   OTHER = 'Other'
@@ -13,21 +13,25 @@ export interface IbadatEntry {
   occasionId: string;
   contributorName: string;
   category: IbadatCategory;
-  ibadatType: string; // e.g., "Quran Juz", "Surah Yasin"
+  ibadatType: string; // e.g., "Darood Khizri", "Surah Yasin"
   count: number;
-  unit: string; // "times", "juz", "pages"
+  unit: string; // "times", "juz", "pages", "khatam"
+  notes?: string; // For spiritual intentions like "For late father"
+  isKhatamPart?: boolean; // Flag to indicate if it's a full completion
+  milestone?: string; // e.g., "Gyarwin Sharif", "Urs", "Rabi-ul-Awwal"
   originalText?: string;
   dateAdded: string;
+  performedDate: string;
 }
 
 export interface Occasion {
   id: string;
   title: string;
-  startDate: string; // ISO Date string YYYY-MM-DD
-  endDate: string;   // ISO Date string YYYY-MM-DD
+  startDate: string;
+  endDate: string;
   description: string;
-  status: 'active' | 'completed';
-  webhookUrl?: string; // URL to POST data to (e.g. Zapier, Make, Airtable)
+  status: 'active' | 'completed' | 'archived';
+  webhookUrl?: string;
 }
 
 export interface ParseResult {
@@ -36,6 +40,8 @@ export interface ParseResult {
   ibadatType: string;
   count: number;
   unit: string;
+  performedDate: string;
+  notes?: string;
 }
 
 export enum ViewMode {
